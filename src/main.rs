@@ -1,5 +1,12 @@
+use fly_coin;
+
 fn main() {
     println!("Hello, world!");
+    let mut s = "aaaa";
+    s = "bbb";
+    let mut b = s.to_string();
+    b.push_str("cccc");
+
     baseDateType();
 
     ownShip();
@@ -7,6 +14,8 @@ fn main() {
     baseOwnAndReference();
 
     mutOwnAndReference();
+
+    fly_coin::test_lfy();
 }
 
 fn baseDateType() {
