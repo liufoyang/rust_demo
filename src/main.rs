@@ -1,5 +1,6 @@
-use fly_coin;
+mod lib;
 
+use lib::fly_coin;
 fn main() {
     println!("Hello, world!");
     let mut s = "aaaa";

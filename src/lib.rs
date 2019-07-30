@@ -1,7 +1,7 @@
-mod fly_coin {
+pub mod fly_coin {
     enum Result<T> {
-        SUCCESS(String, String, T),
-        FAIL(String, String)
+        SUCCESS{code:String, msg:String, item:T},
+        FAIL{code:String, msg:String, credit:T, debit:T}
     }
 
     struct FlyCoin{
@@ -17,7 +17,7 @@ mod fly_coin {
                 currency:currencyCode,
                 ownAccountId:ownAdId
             };
-            coin;
+            return coin;
         }
 
         /**
@@ -25,24 +25,33 @@ mod fly_coin {
         */
         fn moveTo(self, toAddress:String) -> Result<FlyCoin>{
             if toAddress == self.ownAccountId {
-                Result::FAIL(String::from("FAIL"), String::from("can move the coin to same account"));
+                let coin = FlyCoin {
+                    amount: 0,
+                    currency: self.currency.clone(),
+                    ownAccountId: toAddress
+                };
+                return Result::FAIL { code: String::from("FAIL"), msg: String::from("can move the coin to same account"), credit: self, debit: coin };
+            } else {
+                let coin = FlyCoin {
+                    amount:self.amount,
+                    currency:self.currency,
+                    ownAccountId:toAddress
+                };
+
+                return Result::SUCCESS{code:String::from("SUCCESS"),msg:String::from("Move coin to new account"), item:coin};
             }
 
-            let coin = FlyCoin {
-                amount:self.amount,
-                currency:self.currency,
-                ownAccountId:toAddress
-            };
 
-            Result::SUCCESS(String::from("SUCCESS"),String::from("Move coin to new account"), coin);
         }
 
         fn add(self, anotherCoin:FlyCoin) -> Result<FlyCoin> {
             if self.ownAccountId != anotherCoin.ownAccountId {
-                Result::FAIL(String::from("FAIL"), String::from("can add the coin to not same account"));
+                return Result::FAIL {code:String::from("FAIL"), msg:String::from("can add the coin to not same account"), credit:self, debit:anotherCoin};
+
             }
             if self.currency != anotherCoin.currency {
-                Result::FAIL(String::from("FAIL"), String::from("can add the coin to not same currency"));
+               return  Result::FAIL {code:String::from("FAIL"), msg:String::from("can add the coin to not same currency"),credit:self, debit:anotherCoin};
+
             }
 
             let coin = FlyCoin {
@@ -52,20 +61,20 @@ mod fly_coin {
             };
 
             // 相加成功，返回新的币
-            Result::SUCCESS(String::from("SUCCESS"),String::from("Move coin to new account"), coin);
+            return Result::SUCCESS{code:String::from("SUCCESS"),msg:String::from("Move coin to new account"), item:coin };
 
         }
 
         fn sub(self, anotherCoin:FlyCoin) -> Result<FlyCoin> {
             if self.ownAccountId != anotherCoin.ownAccountId {
-                Result::FAIL(String::from("FAIL"), String::from("can sub the coin to not same account"));
+               return  Result::FAIL {code:String::from("FAIL"), msg:String::from("can sub the coin to not same account"),credit:self, debit:anotherCoin};
             }
             if self.currency != anotherCoin.currency {
-                Result::FAIL(String::from("FAIL"), String::from("can sub the coin to not same currency"));
+               return  Result::FAIL {code:String::from("FAIL"), msg:String::from("can sub the coin to not same currency"),credit:self, debit:anotherCoin};
             }
 
             if self.amount < anotherCoin.amount {
-                Result::FAIL(String::from("FAIL"), String::from("can sub the coin less than"));
+               return  Result::FAIL {code:String::from("FAIL"), msg:String::from("can sub the coin less than"),credit:self, debit:anotherCoin};
             }
 
             let coin = FlyCoin {
@@ -75,25 +84,31 @@ mod fly_coin {
             };
 
             // 减少成功，返回新的币
-            Result::SUCCESS(String::from("SUCCESS"),String::from("Move coin to new account"), coin);
+           return  Result::SUCCESS{code:String::from("SUCCESS"),msg:String::from("Move coin to new account"), item:coin};
 
         }
     }
 
     pub fn test_lfy() {
         let coin1 = FlyCoin::create(100, String::from("CNY"), String::from("address_A"));
-        coin1 = match coin1 {
-            Result::SUCCESS => coin1[2],
-            _ => Option::None;
-        }
-        let coin2 = coin1.moveTo(String::from("address_B"));
+
+        let moveResult = coin1.moveTo(String::from("address_B"));
+
+        let coin2  = match moveResult {
+            Result::SUCCESS{code, msg, item} => item,
+            Result::FAIL{code, msg, credit, debit} => credit,
+        };
         println!("move coin1 to address_B ");
 
         // 这里再使用coin1就回报错
         // coin1.moveTo("address_B")
         let coin3 = FlyCoin::create(50, String::from("CNY"), String::from("address_B"));
 
-        let coin4 = coin2.add(coin3);
-        println!("add coin3 to coin2 become to coin4 ");
+        let addResult = coin2.add(coin3);
+        let coin4  = match addResult {
+            Result::SUCCESS{code, msg, item} => item,
+            Result::FAIL{code, msg, credit, debit} => credit,
+        };
+        println!("add coin3 to coin2 become to coin4 {}", coin4.amount);
     }
 }
