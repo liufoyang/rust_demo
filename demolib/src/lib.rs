@@ -1,8 +1,11 @@
 #[cfg(test)]
+
+use flycoin;
+
 mod demo_mod {
     mod waiter {
-        fn add_order(){}
-        fn set_table() {}
+        fn add_order(){ print!("add_order")}
+        fn set_table() {print!("set_table")}
     }
     #[test]
     fn it_works() {
@@ -10,6 +13,3 @@ mod demo_mod {
     }
 }
 
-pub fn call_demo_mod_create() {
-    crate::demo_mod::waiter::add_order();
-}

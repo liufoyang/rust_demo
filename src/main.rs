@@ -1,6 +1,6 @@
-mod lib;
+mod flycoin;
 
-use lib::fly_coin;
+use flycoin::fly_coin;
 fn main() {
     println!("Hello, world!");
     let mut s = "aaaa";
@@ -8,88 +8,88 @@ fn main() {
     let mut b = s.to_string();
     b.push_str("cccc");
 
-    baseDateType();
+    base_date_type();
 
-    ownShip();
+    own_ship();
 
-    baseOwnAndReference();
+    base_own_and_reference();
 
-    mutOwnAndReference();
+    mut_own_and_reference();
 
-    fly_coin::test_lfy();
+    //fly_coin
 }
 
-fn baseDateType() {
-    let demoStr = 'a';
+fn base_date_type() {
+    let demo_str = 'a';
 
-    let demoInt:u32 = 1024;
-    let demoFloat = 10.0;
-    let demoBoolean = true;
+    let demo_int:u32 = 1024;
+    let demo_float = 10.0;
+    let demo_boolean = true;
 
-    println!("base type for char {}, int {}, float {}, boolean {}", demoStr,demoInt, demoFloat, demoBoolean );
+    println!("base type for char {}, int {}, float {}, boolean {}", demo_str,demo_int, demo_float, demo_boolean );
 
     // let default 不变的，下面语句错误
     //demoInt = 120;
 
     // 数组的定义方法
-    let demoArray = [1,2,3,4,5];
-    println!("base array {}", demoArray[0]);
+    let demo_array = [1,2,3,4,5];
+    println!("base array {}", demo_array[0]);
 
     // 可变的变量需要加mut声明
-    let mut demoMutStr:String = String::from("hello");
-    demoMutStr.push_str(", world");
-    demoMutStr.push_str(", from rust");
-    println!("mut varibality {}", demoMutStr);
+    let mut demo_mut_Str:String = String::from("hello");
+    demo_mut_Str.push_str(", world");
+    demo_mut_Str.push_str(", from rust");
+    println!("mut varibality {}", demo_mut_Str);
 
 }
 
-fn ownShip() {
-    let defaultOwn:String  = String::from("own");
-    let defaultOwnInt:i32 = 32;
-    println!("the own is ownMove {}", defaultOwn);
+fn own_ship() {
+    let default_own:String  = String::from("own");
+    let default_ownInt:i32 = 32;
+    println!("the own is own_move {}", default_own);
 
     // 所有者转移到新的，老的会失效
-    let ownMove = defaultOwn;
-    let ownMoveInt:i32 = defaultOwnInt;
-    println!("the own is ownMove {}", ownMove);
-    println!("the own is ownMoveInt {}", ownMoveInt);
+    let own_move = default_own;
+    let own_move_int:i32 = default_ownInt;
+    println!("the own is own_move {}", own_move);
+    println!("the own is own_move_int {}", own_move_int);
 
-   //println!("own have move {}", defaultOwn);   // 再使用原来的变量，就回报错，这里不能通过编译
+   //println!("own have move {}", default_own);   // 再使用原来的变量，就回报错，这里不能通过编译
 
     // 基础类型，放在stack，没有own的转移，直接stack的copy
-    println!("own have move {}", defaultOwnInt);
+    println!("own have move {}", default_ownInt);
 
     // own直接转移到函数内，最终范围结束被清理
-    let passOwn:String = String::from("pass Own");
-    takeOwnShip(passOwn);
+    let pass_own:String = String::from("pass Own");
+    take_own_ship(pass_own);
 
     // 这里再使用，报错
-   // println!("own have move {}", passOwn);
+   // println!("own have move {}", pass_own);
 
     // 基本类型，存放在stack，  own不传递，只复制值
-    notTakeOwnShip(ownMoveInt);
-    println!("the own is own not pass {}", ownMoveInt);
+    not_take_own_ship(own_move_int);
+    println!("the own is own not pass {}", own_move_int);
 }
 
-fn takeOwnShip(ownPass:String) {
-    println!("own have move in fun {}", ownPass);
+fn take_own_ship(own_pass:String) {
+    println!("own have move in fun {}", own_pass);
 }
 
-fn notTakeOwnShip(ownPass:i32) {
-    println!("own have move in fun {}", ownPass);
+fn not_take_own_ship(own_pass:i32) {
+    println!("own have move in fun {}", own_pass);
 }
 
-fn baseOwnAndReference() {
+fn base_own_and_reference() {
     // 变量第一个持有，就是这变量的ownship
-    let defaultOwn:String = String::from("dafualOwn");
+    let default_own:String = String::from("dafualOwn");
 
     //
-    let mut reference: &String = &defaultOwn;
+    let mut reference: &String = &default_own;
     {
-        // we only can use when ownship 在范围块内
-        let ownScop:String = String::from("ownscop");
+        // we only can use when own_ship 在范围块内
+        let own_scop:String = String::from("own_scop");
 
-        reference = &ownScop;
+        reference = &own_scop;
 
         println!("in scop use {}", reference);
     }
@@ -100,30 +100,30 @@ fn baseOwnAndReference() {
 }
 
 
-fn mutOwnAndReference() {
+fn mut_own_and_reference() {
     // 变量第一个持有，就是这变量的ownship
-    let mut defaultOwn:String = String::from("dafualOwn");
+    let mut default_own:String = String::from("dafualOwn");
 
     //
-    let mut reference1: &String = &mut defaultOwn;
+    let mut reference1: &String = &mut default_own;
 
     // 借用只能借给一个，不能同时使用
-    //let mut reference2: &String = &mut defaultOwn;
+    //let mut reference2: &String = &mut default_own;
     //println!("in scop use {}", reference2);
 
     {
-        // we only can use when ownship 在范围块内
-        let ownScop: String = String::from("ownscop");
+        // we only can use when own_ship 在范围块内
+        let own_scop: String = String::from("own_scop");
 
-        reference1 = &ownScop;
+        reference1 = &own_scop;
         println!("in scop use {}", reference1);
 
         // 这里 借用可以， 因为refenc1已结结束借用了。
-        let mut reference2 = &mut defaultOwn;
+        let reference2 = &mut default_own;
         println!("in scop use one borrow {}", reference2);
 
         // 把可变的变量借给第二个可变引用，则会报错，同时只能借给一个可变引用
-        //reference1 = &mut defaultOwn;
+        //reference1 = &mut default_own;
         //println!("in scop use {} {}", reference1, reference2);
     }
 
