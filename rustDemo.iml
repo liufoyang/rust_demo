@@ -8,6 +8,20 @@
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/minigrep/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demobin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demobin/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demobin/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/demobin/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/minigrep/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/minigrep/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/minigrep/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/demolib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demolib/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/demolib/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/demolib/benches" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/demobin/target" />
+      <excludeFolder url="file://$MODULE_DIR$/demolib/target" />
+      <excludeFolder url="file://$MODULE_DIR$/minigrep/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
