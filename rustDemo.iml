@@ -19,9 +19,19 @@
       <sourceFolder url="file://$MODULE_DIR$/demolib/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/demolib/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/demolib/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/consensus/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/consensus/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/consensus/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/consensus/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/rocketdemo/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rocketdemo/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rocketdemo/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/rocketdemo/benches" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/consensus/target" />
       <excludeFolder url="file://$MODULE_DIR$/demobin/target" />
       <excludeFolder url="file://$MODULE_DIR$/demolib/target" />
       <excludeFolder url="file://$MODULE_DIR$/minigrep/target" />
+      <excludeFolder url="file://$MODULE_DIR$/rocketdemo/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

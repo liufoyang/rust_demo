@@ -3,4 +3,6 @@ members = [
     "demobin",
     "minigrep",
     "demolib",
+    "consensus",
+    "rocketdemo",
 ]
