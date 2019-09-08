@@ -2,26 +2,43 @@ use bft_message::*;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
+extern crate serde;
+extern crate serde_json;
+use serde_json;
+use serde::{Deserialize, Serialize};
+use serde_json::{Result, Value};
+use reqwest;
 
-pub struct btf_node{
-    node_id:u32,
-    status:String,
-    view_num:u32,
-    node_list:Vec<(String, String, u32, Ed25519PublicKey)>,
-    msg_cache:Vec<(u32, Bft_Message)>,
-    prepare_cache: Vec<(u32, Vec<Bft_Prepare_Message>)>,
-    commit_cache: Vec<(u32, Vec<Bft_Commit_Message>)>,
-    private_key: Ed25519PrivateKey,
-    public_key: Ed25519PublicKey,
-    ip:String,
-    port:u32
+#[derive(Serialize, Deserialize)]
+pub struct Btf_Node_Simple {
+    node_id:u64,
+    address:String,
+    port:String,
+    public_key: String,
 }
 
-impl btf_node {
+pub struct Btf_Node{
+    base:bft_simple,
+    status:String,
+    view_num:u64,
+    node_list:Vec<Btf_Node_Simple>,
+    msg_cache:Vec<(u64, Bft_Message)>,
+    prepare_cache: Vec<(u64, Vec<Bft_Prepare_Message>)>,
+    commit_cache: Vec<(u64, Vec<Bft_Commit_Message>)>,
+    private_key: String,
+}
 
-    fn new(_view_num:u32, _node_list:Vec<(String, String, u32)>, _ip:&str, _port:u32,_node_id:u32) -> btf_node{
-        btf_node{
+impl Btf_Node {
+
+    fn new(_view_num:u64, _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64) -> Btf_Node{
+        let bft_simple = Btf_Node_Simple{
             node_id:_node_id,
+            address:_ip.to_string(),
+            port: _port.to_string(),
+            public_key:"".to_string()
+        };
+        let node = Btf_Node{
+            base:bft_simple,
             status:"new".to_string(),
             view_num:_view_num,
             node_list:_node_list,
@@ -29,10 +46,9 @@ impl btf_node {
             prepare_cache:Vec::new(),
             commit_cache:Vec::new(),
             private_key: Ed25519PrivateKey,
-            public_key: Ed25519PublicKey,
-            ip:_ip.to_string(),
-            port:_port
-        }
+        };
+
+        return node;
     }
 
     fn doPrepare(&self, msg:Bft_PrePrepare_Message) {
@@ -42,12 +58,12 @@ impl btf_node {
         let digest;
         // new the prepare msg for this node
 
-        let prepaireMsg = Bft_Prepare_Message::new(self.view_num, msg.sequence_num, digest, self.node_id );
+        let prepaireMsg = Bft_Prepare_Message::new(self.view_num, msg.get_sequence_num(), digest, self.node_id );
 
         // broadcast the msg to other
     }
 
-    fn doCommit(&self, _sequence_num:u32) {
+    fn doCommit(&self, _sequence_num:u64) {
         if self.prepare_cache.len() <= 0 {
             return;
         }
@@ -64,7 +80,7 @@ impl btf_node {
     }
 
 
-    fn doReplay(&self, _sequence_num:u32) {
+    fn doReplay(&self, _sequence_num:u64) {
         if self.commit_cache.len() <= 0 {
             return;
         }
@@ -83,9 +99,30 @@ impl btf_node {
     }
 
     /// start new node, connect the bft network
-    pub fn start_node(_address:&str, _port:u32) -> btf_node{
+    pub fn start_node(_address:&str, _port:u64) -> Btf_Node{
 
-        //
+        // send request for primary
+        if _address.len() > 0 {
+            let url = String::from("https://").push_str(_address + ":" + _port);
+            let body = reqwest::get(url)?
+                .text()?;
+
+            // body is {view_num:num, node_num:xxx, node_list:[{node_num:xxx, address:xxx, port:xxx, public_key:xxx}]};
+            let node_value::Value = serde_json::from_str(body)?;
+
+            let mut simple_vec:Vec<Btf_Node_Simple> = Vec::new();
+            let mut simple_list:Vec<Value> = node_value["node_list"];
+            for one_simple in & simple_list {
+                let simple = Btf_Node_Simple{
+                    node_id: one_simple["node_num"].as_u64().unwrap(),
+                    address:one_simple["address"].as_str().to_string(),
+                    port:one_simple["port"].as_str().to_string(),
+                    public_key: one_simple["public_key"].as_str().to_string()
+                };
+                simple_vec.push(simple);
+            }
+
+        }
         let port = _port;
         let view_num = 1;
         let node_list = Vec::new();
@@ -107,7 +144,7 @@ impl btf_node {
             handle_connection(stream);
         }
 
-        let node = btf_node::new(view_num, node_list, ip, port,node_id);
+        let node = Btf_Node::new(view_num, node_list, ip, port,node_id);
     }
 
 

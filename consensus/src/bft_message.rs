@@ -1,5 +1,12 @@
 /// client source msg to bft node
 /// the primiry receive the node and begin to prepare phase
+extern crate serde;
+extern crate serde_json;
+use serde_json;
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
+#[derive(Serialize, Deserialize)]
 pub struct Bft_Message {
     id:String,
     client_id:String,
@@ -27,6 +34,7 @@ impl Bft_Message {
 
 ///  use to contain the byte[] of Bft_Message
 ///  do the hash for Bft_Message
+
 pub struct Bft_Message_Bytes<'a>(pub &'a [u8]);
 
 impl<'a> CryptoHash for Bft_Message_Bytes<'a> {
@@ -41,6 +49,7 @@ impl<'a> CryptoHash for Bft_Message_Bytes<'a> {
 
 /// the replay to client from Bft node
 ///  every Bft node non fault will send the repay;
+#[derive(Serialize, Deserialize)]
 pub struct Bft_Replay{
     view_num:u32,
     timestamp:u64,
@@ -61,7 +70,7 @@ impl Bft_Replay {
         return replay;
     }
 }
-
+#[derive(Serialize, Deserialize)]
 pub struct Bft_PrePrepare_Message {
     view_num:u32,
     sequence_num:u32,
@@ -81,15 +90,32 @@ impl Bft_PrePrepare_Message {
         };
         return replay;
     }
-}
 
+    pub fn get_view_num(&self) -> u32 {
+        return self.view_num.clone();
+    }
+
+    pub fn get_sequence_num(&self) -> u32 {
+        return self.sequence_num.clone();
+    }
+
+    pub fn get_client_msg(&self) -> &Bft_Message {
+        return &(self.client_msg);
+    }
+
+    pub fn get_msg_digest(&self) -> &HashValue {
+        return &(self.msg_digest);
+    }
+
+}
+#[derive(Serialize, Deserialize)]
 pub struct Bft_Prepare_Message {
     view_num:u32,
     sequence_num:u32,
     msg_digest:HashValue,
     node_id:u32
 }
-
+#[derive(Serialize, Deserialize)]
 impl Bft_Prepare_Message {
     pub fn new(_view_num:u32, _sequence_num:u32, _digest:HashValue, _node_id:u32 ) ->Bft_Prepare_Message {
         let msg = Bft_Prepare_Message {
@@ -100,15 +126,31 @@ impl Bft_Prepare_Message {
         };
         return msg;
     }
-}
 
+    pub fn get_view_num(&self) -> u32 {
+        return self.view_num.clone();
+    }
+
+    pub fn get_sequence_num(&self) -> u32 {
+        return self.sequence_num.clone();
+    }
+
+    pub fn get_client_msg(&self) -> &Bft_Message {
+        return &(self.client_msg);
+    }
+
+    pub fn get_msg_digest(&self) -> &HashValue {
+        return &(self.msg_digest);
+    }
+}
+#[derive(Serialize, Deserialize)]
 pub struct Bft_Commit_Message {
     view_num:u32,
     sequence_num:u32,
     msg_digest:HashValue,
     node_id:u32
 }
-
+#[derive(Serialize, Deserialize)]
 impl Bft_Commit_Message {
     pub fn new(_view_num:u32, _sequence_num:u32, _digest:HashValue, _node_id:u32 ) ->Bft_Commit_Message {
         let msg = Bft_Commit_Message {
@@ -118,5 +160,20 @@ impl Bft_Commit_Message {
             node_id:_node_id
         };
         return msg;
+    }
+    pub fn get_view_num(&self) -> u32 {
+        return self.view_num.clone();
+    }
+
+    pub fn get_sequence_num(&self) -> u32 {
+        return self.sequence_num.clone();
+    }
+
+    pub fn get_client_msg(&self) -> &Bft_Message {
+        return &(self.client_msg);
+    }
+
+    pub fn get_msg_digest(&self) -> &HashValue {
+        return &(self.msg_digest);
     }
 }
