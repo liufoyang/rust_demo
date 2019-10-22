@@ -1,12 +1,10 @@
 /// client source msg to bft node
 /// the primiry receive the node and begin to prepare phase
-extern crate serde;
-extern crate serde_json;
 use serde_json;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bft_Message {
     id:String,
     client_id:String,
@@ -25,10 +23,8 @@ impl Bft_Message {
         return msg;
     }
 
-    pub fn sign(&self) -> HashValue{
-        source_msg_bytes = [];
-        let digest = Bft_Message_Bytes(source_msg_bytes).hash();
-        return digest;
+    pub fn sign(&self, private_key:&str, public_key:&str) -> String{
+        return public_key.to_string();
     }
 
     pub fn get_id(&self) -> &str {
@@ -41,19 +37,9 @@ impl Bft_Message {
 
 pub struct Bft_Message_Bytes<'a>(pub &'a [u8]);
 
-impl<'a> CryptoHash for Bft_Message_Bytes<'a> {
-    type Hasher = RawTransactionHasher;
-
-    fn hash(&self) -> HashValue {
-        let mut state = Self::Hasher::default();
-        state.write(self.0);
-        state.finish()
-    }
-}
-
 /// the replay to client from Bft node
 ///  every Bft node non fault will send the repay;
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bft_Replay{
     view_num:u64,
     timestamp:u64,
@@ -74,11 +60,11 @@ impl Bft_Replay {
         return replay;
     }
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bft_PrePrepare_Message {
     view_num:u64,
     sequence_num:u64,
-    msg_digest:HashValue,
+    msg_digest:String,
     client_msg:Bft_Message,
 }
 
@@ -86,10 +72,10 @@ impl Bft_PrePrepare_Message {
     pub fn new(_view_num:u64, _sequence_num: u64,_source_msg:Bft_Message)->Bft_PrePrepare_Message {
 
 
-        let replay = Bft_prepare_Message {
+        let replay = Bft_PrePrepare_Message {
             view_num:_view_num,
             sequence_num:_sequence_num,
-            msg_digest:_source_msg.sign(),
+            msg_digest:_source_msg.sign("", ""),
             client_msg:_source_msg,
         };
         return replay;
@@ -107,19 +93,19 @@ impl Bft_PrePrepare_Message {
         return &(self.client_msg);
     }
 
-    pub fn get_msg_digest(&self) -> &HashValue {
-        return &(self.msg_digest);
+    pub fn get_msg_digest(&self) -> &str {
+        return &(self.msg_digest.as_str());
     }
 
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bft_Prepare_Message {
     view_num:u64,
     sequence_num:u64,
     msg_digest:String,
     node_id:u64
 }
-#[derive(Serialize, Deserialize)]
+
 impl Bft_Prepare_Message {
     pub fn new(_view_num:u64, _sequence_num:u64, _digest:&str, _node_id:u64 ) ->Bft_Prepare_Message {
         let msg = Bft_Prepare_Message {
@@ -139,10 +125,6 @@ impl Bft_Prepare_Message {
         return self.sequence_num.clone();
     }
 
-    pub fn get_client_msg(&self) -> &Bft_Message {
-        return &(self.client_msg);
-    }
-
     pub fn get_msg_digest(&self) -> &String {
         return &(self.msg_digest);
     }
@@ -151,14 +133,14 @@ impl Bft_Prepare_Message {
         return self.node_id.clone();
     }
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bft_Commit_Message {
     view_num:u64,
     sequence_num:u64,
     msg_digest:String,
     node_id:u64
 }
-#[derive(Serialize, Deserialize)]
+
 impl Bft_Commit_Message {
     pub fn new(_view_num:u64, _sequence_num:u64, _digest:&str, _node_id:u64 ) ->Bft_Commit_Message {
         let msg = Bft_Commit_Message {
@@ -177,11 +159,11 @@ impl Bft_Commit_Message {
         return self.sequence_num.clone();
     }
 
-    pub fn get_client_msg(&self) -> &Bft_Message {
-        return &(self.client_msg);
+    pub fn get_msg_digest(&self) -> &String {
+        return &(self.msg_digest);
     }
 
-    pub fn get_msg_digest(&self) -> &HashValue {
-        return &(self.msg_digest);
+    pub fn get_node_id(&self) -> u64 {
+        return self.node_id.clone();
     }
 }

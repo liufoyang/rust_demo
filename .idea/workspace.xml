@@ -3,8 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="7e37d743-3f0d-45c7-8795-9f591f290e45" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/bft_message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/bft_message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/bft_node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/bft_node.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/bft_message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib/bft_message.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/bft_node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib/bft_node.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/main.rs" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -18,22 +20,24 @@
     <session id="-1080135732">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="28" />
+          <entry key="project.closed" value="34" />
           <entry key="project.open.time.1" value="3" />
-          <entry key="project.open.time.11" value="5" />
-          <entry key="project.open.time.12" value="2" />
+          <entry key="project.open.time.10" value="1" />
+          <entry key="project.open.time.11" value="7" />
+          <entry key="project.open.time.12" value="3" />
           <entry key="project.open.time.13" value="3" />
           <entry key="project.open.time.14" value="3" />
           <entry key="project.open.time.15" value="1" />
           <entry key="project.open.time.17" value="1" />
           <entry key="project.open.time.2" value="2" />
+          <entry key="project.open.time.21" value="1" />
           <entry key="project.open.time.22" value="1" />
           <entry key="project.open.time.3" value="3" />
           <entry key="project.open.time.6" value="1" />
           <entry key="project.open.time.7" value="1" />
           <entry key="project.open.time.8" value="3" />
-          <entry key="project.open.time.9" value="3" />
-          <entry key="project.opened" value="32" />
+          <entry key="project.open.time.9" value="5" />
+          <entry key="project.opened" value="39" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -41,30 +45,30 @@
           <entry key="iml" value="2" />
           <entry key="lock" value="1" />
           <entry key="md" value="1" />
-          <entry key="rs" value="35" />
-          <entry key="toml" value="15" />
+          <entry key="rs" value="39" />
+          <entry key="toml" value="16" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="IDEA_MODULE" value="2" />
           <entry key="Markdown" value="1" />
-          <entry key="PLAIN_TEXT" value="16" />
-          <entry key="Rust" value="35" />
+          <entry key="PLAIN_TEXT" value="17" />
+          <entry key="Rust" value="39" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="md" value="26" />
-          <entry key="rs" value="14069" />
-          <entry key="toml" value="155" />
+          <entry key="rs" value="16370" />
+          <entry key="toml" value="156" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Markdown" value="26" />
-          <entry key="PLAIN_TEXT" value="155" />
-          <entry key="Rust" value="14069" />
+          <entry key="PLAIN_TEXT" value="156" />
+          <entry key="Rust" value="16370" />
         </counts>
       </usages-collector>
     </session>
@@ -72,49 +76,19 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/consensus/src/bft_message.rs">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_message.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="76">
-              <caret line="70" column="28" selection-start-line="70" selection-start-column="28" selection-end-line="70" selection-end-column="28" />
-              <folding>
-                <element signature="e#863#864#0" expanded="true" />
-                <element signature="e#901#902#0" expanded="true" />
-                <element signature="e#2487#2488#0" expanded="true" />
-                <element signature="e#2531#2532#0" expanded="true" />
-                <element signature="e#2576#2577#0" expanded="true" />
-                <element signature="e#2624#2625#0" expanded="true" />
-                <element signature="e#2676#2677#0" expanded="true" />
-                <element signature="e#2717#2718#0" expanded="true" />
-                <element signature="e#2767#2768#0" expanded="true" />
-                <element signature="e#2808#2809#0" expanded="true" />
-                <element signature="e#3381#3382#0" expanded="true" />
-                <element signature="e#3425#3426#0" expanded="true" />
-                <element signature="e#3470#3471#0" expanded="true" />
-                <element signature="e#3518#3519#0" expanded="true" />
-                <element signature="e#3570#3571#0" expanded="true" />
-                <element signature="e#3611#3612#0" expanded="true" />
-                <element signature="e#3661#3662#0" expanded="true" />
-                <element signature="e#3702#3703#0" expanded="true" />
-                <element signature="e#3738#3739#0" expanded="true" />
-                <element signature="e#3775#3776#0" expanded="true" />
-                <element signature="e#4274#4275#0" expanded="true" />
-                <element signature="e#4318#4319#0" expanded="true" />
-                <element signature="e#4363#4364#0" expanded="true" />
-                <element signature="e#4411#4412#0" expanded="true" />
-                <element signature="e#4463#4464#0" expanded="true" />
-                <element signature="e#4504#4505#0" expanded="true" />
-                <element signature="e#4554#4555#0" expanded="true" />
-                <element signature="e#4595#4596#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="1311">
+              <caret line="71" column="72" selection-start-line="71" selection-start-column="15" selection-end-line="71" selection-end-column="72" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/consensus/src/bft_node.rs">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_node.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-495">
-              <caret line="283" column="138" selection-start-line="283" selection-start-column="138" selection-end-line="283" selection-end-column="138" />
+            <state relative-caret-position="494">
+              <caret line="69" column="58" selection-start-line="69" selection-start-column="58" selection-end-line="69" selection-end-column="58" />
             </state>
           </provider>
         </entry>
@@ -122,8 +96,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="228">
-              <caret line="14" column="1" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+            <state relative-caret-position="399">
+              <caret line="21" column="25" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/minigrep/src/lib.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="456">
+              <caret line="24" column="10" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="10" />
             </state>
           </provider>
         </entry>
@@ -131,26 +114,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="209">
-              <caret line="11" column="16" selection-start-line="11" selection-start-column="16" selection-end-line="11" selection-end-column="16" />
+            <state relative-caret-position="114">
+              <caret line="6" column="96" selection-start-line="6" selection-start-column="96" selection-end-line="6" selection-end-column="96" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rocketdemo/src/main.rs">
+        <entry file="file://$PROJECT_DIR$/minigrep/src/main.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="152">
-              <caret line="12" selection-start-line="12" selection-end-line="12" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rocketdemo/Cargo.toml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="171">
-              <caret line="9" selection-start-line="9" selection-end-line="9" selection-end-column="16" />
+            <state relative-caret-position="361">
+              <caret line="19" column="7" selection-start-line="19" selection-start-column="7" selection-end-line="19" selection-end-column="7" />
             </state>
           </provider>
         </entry>
@@ -170,10 +144,10 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/consensus/src/lib.rs">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/mod.rs">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="19">
-              <caret line="1" column="13" selection-start-line="1" selection-start-column="13" selection-end-line="1" selection-end-column="13" />
+              <caret line="1" column="17" selection-start-line="1" selection-start-column="17" selection-end-line="1" selection-end-column="17" />
             </state>
           </provider>
         </entry>
@@ -204,12 +178,16 @@
       <find>btf_node</find>
       <find>Bft_PrePrepare_Message</find>
       <find>u32</find>
+      <find>broadcastMsg</find>
+      <find>Bft_prepare_Message</find>
+      <find>start_node</find>
     </findStrings>
     <replaceStrings>
       <replace>mut_own_and_reference</replace>
       <replace>Bft</replace>
       <replace>Btf_Node</replace>
       <replace>u64</replace>
+      <replace>Bft_PrePrepare_Message</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -243,14 +221,17 @@
         <option value="$PROJECT_DIR$/demolib/src/lib.rs" />
         <option value="$PROJECT_DIR$/demolib/src/fly_result.rs" />
         <option value="$PROJECT_DIR$/demolib/src/fly_coin.rs" />
-        <option value="$PROJECT_DIR$/consensus/src/lib.rs" />
         <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/rocketdemo/Cargo.toml" />
         <option value="$PROJECT_DIR$/rocketdemo/src/main.rs" />
-        <option value="$PROJECT_DIR$/consensus/src/main.rs" />
-        <option value="$PROJECT_DIR$/consensus/Cargo.toml" />
         <option value="$PROJECT_DIR$/consensus/src/bft_message.rs" />
         <option value="$PROJECT_DIR$/consensus/src/bft_node.rs" />
+        <option value="$PROJECT_DIR$/consensus/Cargo.toml" />
+        <option value="$PROJECT_DIR$/consensus/src/bft_domain/mod.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/bft_domain/bft_node.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/main.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib/bft_node.rs" />
       </list>
     </option>
   </component>
@@ -289,6 +270,24 @@
               <item name="consensus" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="rustDemo" type="b2602c69:ProjectViewProjectNode" />
+              <item name="rustDemo" type="462c0819:PsiDirectoryNode" />
+              <item name="consensus" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="rustDemo" type="b2602c69:ProjectViewProjectNode" />
+              <item name="rustDemo" type="462c0819:PsiDirectoryNode" />
+              <item name="minigrep" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="rustDemo" type="b2602c69:ProjectViewProjectNode" />
+              <item name="rustDemo" type="462c0819:PsiDirectoryNode" />
+              <item name="minigrep" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -300,21 +299,22 @@
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1568342938786" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1568556730572" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../libra" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
   </component>
   <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\project\rustDemo\src\demo" />
-    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\project\rustDemo\consensus\src" />
       <recent name="D:\project\rustDemo\demobin\tests" />
       <recent name="D:\project\rustDemo\demobin\src" />
       <recent name="D:\project\rustDemo\src" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\project\rustDemo\consensus\src\lib" />
+      <recent name="D:\project\rustDemo\src\demo" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -402,18 +402,24 @@
       <workItem from="1567906709922" duration="4473000" />
       <workItem from="1567949123816" duration="3343000" />
       <workItem from="1567954374036" duration="40000" />
-      <workItem from="1568333612592" duration="8668000" />
+      <workItem from="1568333612592" duration="8815000" />
+      <workItem from="1568343828284" duration="4538000" />
+      <workItem from="1568472138619" duration="689000" />
+      <workItem from="1568507526243" duration="3751000" />
+      <workItem from="1568517248274" duration="9418000" />
+      <workItem from="1569029501455" duration="3012000" />
+      <workItem from="1569123158956" duration="1762000" />
+      <workItem from="1571749730596" duration="698000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="95205000" />
+    <option name="totallyTimeSpent" value="119220000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.34861407" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.37579957" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
@@ -421,16 +427,17 @@
       <window_info id="Capture Tool" order="5" />
       <window_info id="Favorites" order="6" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info active="true" anchor="bottom" id="Find" order="1" visible="true" weight="0.32899022" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32899022" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.32899022" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Database Changes" order="7" show_stripe_button="false" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="8" sideWeight="0.4978678" visible="true" weight="0.32790446" />
+      <window_info anchor="bottom" id="Terminal" order="8" sideWeight="0.4978678" visible="true" weight="0.32790446" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.5021322" side_tool="true" weight="0.3286334" />
       <window_info anchor="bottom" id="Version Control" order="10" />
+      <window_info anchor="bottom" id="Messages" order="11" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -504,24 +511,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/minigrep/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="361">
-          <caret line="19" column="7" selection-start-line="19" selection-start-column="7" selection-end-line="19" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/demolib/src/fly_account.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="247">
           <caret line="13" column="15" selection-start-line="13" selection-start-column="5" selection-end-line="13" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/minigrep/src/lib.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="456">
-          <caret line="24" column="10" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="10" />
         </state>
       </provider>
     </entry>
@@ -549,20 +542,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="14" column="1" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="209">
-          <caret line="11" column="16" selection-start-line="11" selection-start-column="16" selection-end-line="11" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/rocketdemo/src/main.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="152">
@@ -577,6 +556,42 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib.rs" />
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_message.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1311">
+          <caret line="71" column="72" selection-start-line="71" selection-start-column="15" selection-end-line="71" selection-end-column="72" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="399">
+          <caret line="21" column="25" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/minigrep/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="24" column="10" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="6" column="96" selection-start-line="6" selection-start-column="96" selection-end-line="6" selection-end-column="96" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/minigrep/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="361">
+          <caret line="19" column="7" selection-start-line="19" selection-start-column="7" selection-end-line="19" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/rustDemo.iml">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -587,10 +602,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/lib.rs">
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="19">
-          <caret line="1" column="13" selection-start-line="1" selection-start-column="13" selection-end-line="1" selection-end-column="13" />
+          <caret line="1" column="17" selection-start-line="1" selection-start-column="17" selection-end-line="1" selection-end-column="17" />
         </state>
       </provider>
     </entry>
@@ -601,47 +616,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/bft_message.rs">
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_node.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="76">
-          <caret line="70" column="28" selection-start-line="70" selection-start-column="28" selection-end-line="70" selection-end-column="28" />
-          <folding>
-            <element signature="e#863#864#0" expanded="true" />
-            <element signature="e#901#902#0" expanded="true" />
-            <element signature="e#2487#2488#0" expanded="true" />
-            <element signature="e#2531#2532#0" expanded="true" />
-            <element signature="e#2576#2577#0" expanded="true" />
-            <element signature="e#2624#2625#0" expanded="true" />
-            <element signature="e#2676#2677#0" expanded="true" />
-            <element signature="e#2717#2718#0" expanded="true" />
-            <element signature="e#2767#2768#0" expanded="true" />
-            <element signature="e#2808#2809#0" expanded="true" />
-            <element signature="e#3381#3382#0" expanded="true" />
-            <element signature="e#3425#3426#0" expanded="true" />
-            <element signature="e#3470#3471#0" expanded="true" />
-            <element signature="e#3518#3519#0" expanded="true" />
-            <element signature="e#3570#3571#0" expanded="true" />
-            <element signature="e#3611#3612#0" expanded="true" />
-            <element signature="e#3661#3662#0" expanded="true" />
-            <element signature="e#3702#3703#0" expanded="true" />
-            <element signature="e#3738#3739#0" expanded="true" />
-            <element signature="e#3775#3776#0" expanded="true" />
-            <element signature="e#4274#4275#0" expanded="true" />
-            <element signature="e#4318#4319#0" expanded="true" />
-            <element signature="e#4363#4364#0" expanded="true" />
-            <element signature="e#4411#4412#0" expanded="true" />
-            <element signature="e#4463#4464#0" expanded="true" />
-            <element signature="e#4504#4505#0" expanded="true" />
-            <element signature="e#4554#4555#0" expanded="true" />
-            <element signature="e#4595#4596#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/bft_node.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-495">
-          <caret line="283" column="138" selection-start-line="283" selection-start-column="138" selection-end-line="283" selection-end-column="138" />
+        <state relative-caret-position="494">
+          <caret line="69" column="58" selection-start-line="69" selection-start-column="58" selection-end-line="69" selection-end-column="58" />
         </state>
       </provider>
     </entry>
