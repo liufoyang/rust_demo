@@ -8,6 +8,7 @@ use serde_json::{Result, Value};
 use std::collections::HashMap;
 use reqwest;
 use std::u64;
+use rocket_contrib::json::{Json, JsonValue};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Btf_Node_Simple {
@@ -63,11 +64,11 @@ impl Btf_Node {
 
     pub fn receiveClientMsg(& mut self, msg:Bft_Message) {
 
-        let view_num_temp;usize = 10;
+        let view_num_temp:usize = 10;
 
         let primaryNodeId = self.node_list.len() % view_num_temp;
         //let promaryNodeU64:u64 = primaryNodeId.shl();
-        if self.base.node_id.to_usize() == primaryNodeId {
+        if self.base.node_id as usize == primaryNodeId {
             // is primary node send prepare
             let keys = self.msg_cache.keys();
             let mut num:u64 = 0;
