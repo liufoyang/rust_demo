@@ -307,7 +307,6 @@ impl Btf_Node {
     pub fn start_node(_address:&str, _port: &str) -> Btf_Node{
 
         // send request for primary
-        let mut node_isntance:Btf_Node;
         let mut simple_vec:Vec<Btf_Node_Simple> = Vec::new();
         if _address.len() > 0 {
             // the bft network primary not null, is not the first node,send init msg to
@@ -333,7 +332,7 @@ impl Btf_Node {
                 simple_vec.push(simple);
             }
             let ip = "127.0.0.1";
-            node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8087",node_num);
+            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8087",node_num);
 
             return node_isntance;
         } else {
@@ -343,7 +342,7 @@ impl Btf_Node {
             let node_list = Vec::new();
             let ip = "127.0.0.1";
             let node_id = 1;
-            node_isntance = Btf_Node::new(view_num, node_list, ip, "8087",node_id);
+            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8087",node_id);
 
             return node_isntance;
 
