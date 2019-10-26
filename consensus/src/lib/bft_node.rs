@@ -28,6 +28,7 @@ pub struct Btf_Node{
     base:Btf_Node_Simple,
     status:String,
     view_num:u64,
+    is_primary: bool,
     node_list: Vec<Btf_Node_Simple>,
     msg_cache:HashMap<u64, Bft_Message>,
     prepare_cache: HashMap<u64, Vec<Bft_Prepare_Message>>,
@@ -37,7 +38,7 @@ pub struct Btf_Node{
 
 impl Btf_Node {
 
-    fn new(_view_num:u64, _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64) -> Btf_Node{
+    fn new(_view_num:u64, _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool) -> Btf_Node{
         let bft_simple = Btf_Node_Simple{
             node_id:_node_id,
             address:_ip.to_string(),
@@ -48,6 +49,7 @@ impl Btf_Node {
             base:bft_simple,
             status:"new".to_string(),
             view_num:_view_num,
+            is_primary:isPrimary,
             node_list:_node_list,
             msg_cache:HashMap::new(),
             prepare_cache:HashMap::new(),
@@ -81,9 +83,11 @@ impl Btf_Node {
             // clone one msg save in self node;
             self.msg_cache.insert(num.clone(), msg.clone());
 
-            let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), num, msg);
+            if self.is_primary {
+                let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), num, msg);
+                //self.broadcastMsg(&prePrepareMsg, "prePrepare");
+            }
 
-            self.broadcastMsg(&prePrepareMsg, "prePrepare");
         }
     }
     pub fn doPrepare(& mut self, msg:Bft_PrePrepare_Message) {
@@ -332,7 +336,7 @@ impl Btf_Node {
                 simple_vec.push(simple);
             }
             let ip = "127.0.0.1";
-            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8087",node_num);
+            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8087",node_num, false);
 
             return node_isntance;
         } else {
@@ -342,7 +346,7 @@ impl Btf_Node {
             let node_list = Vec::new();
             let ip = "127.0.0.1";
             let node_id = 1;
-            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8087",node_id);
+            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8087",node_id, true);
 
             return node_isntance;
 
