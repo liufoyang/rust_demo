@@ -9,6 +9,8 @@ use std::collections::HashMap;
 use reqwest;
 use std::u64;
 use rocket_contrib::json::{Json, JsonValue};
+use reqwest::r#async::Client;
+use futures::{stream, Future};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Btf_Node_Simple {
@@ -38,13 +40,17 @@ pub struct Btf_Node{
 
 impl Btf_Node {
 
-    fn new(_view_num:u64, _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool) -> Btf_Node{
+    fn new(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool) -> Btf_Node{
         let bft_simple = Btf_Node_Simple{
             node_id:_node_id,
             address:_ip.to_string(),
             port: _port.to_string(),
             public_key:"".to_string()
         };
+
+        // put self to the node list
+        _node_list.push(bft_simple.clone());
+
         let node = Btf_Node{
             base:bft_simple,
             status:"new".to_string(),
@@ -85,7 +91,7 @@ impl Btf_Node {
 
             if self.is_primary {
                 let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), num, msg);
-                //self.broadcastMsg(&prePrepareMsg, "prePrepare");
+                self.broadcastMsg(&prePrepareMsg, "prePrepare");
             }
 
         }
@@ -314,7 +320,7 @@ impl Btf_Node {
         let mut simple_vec:Vec<Btf_Node_Simple> = Vec::new();
         if _address.len() > 0 {
             // the bft network primary not null, is not the first node,send init msg to
-            let mut url = String::from("https://");
+            let mut url = String::from("http://");
             url.push_str(_address);
             url.push_str(":");
             url.push_str(_port);
@@ -335,8 +341,9 @@ impl Btf_Node {
                 };
                 simple_vec.push(simple);
             }
-            let ip = "127.0.0.1";
-            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8087",node_num, false);
+
+            let ip = "localhost";
+            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8000",node_num, false);
 
             return node_isntance;
         } else {
@@ -344,10 +351,9 @@ impl Btf_Node {
             let port = _port;
             let view_num = 1;
             let node_list = Vec::new();
-            let ip = "127.0.0.1";
+            let ip = "localhost";
             let node_id = 1;
-            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8087",node_id, true);
-
+            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8000",node_id, true);
             return node_isntance;
 
         }
@@ -358,7 +364,7 @@ impl Btf_Node {
     fn broadcastMsg<T: Serialize >(&self, data:& T, command:&str) {
 
         for node in &(self.node_list) {
-            let mut url = String::from("https://");
+            let mut url = String::from("http://");
             url.push_str(node.address.as_str());
             url.push_str(":");
             url.push_str(node.port.as_str());
@@ -366,15 +372,15 @@ impl Btf_Node {
             url.push('/');
             url.push_str(command);
 
-            let res = reqwest::Client::new()
+            // 异步发送消息
+            let future = Client::new()
                 .post(url.as_str())
                 .json(data)
-                .send()
-                .unwrap();
-            if res.status() !=200 {
+                .send();
 
-            }
         }
+
+
     }
 
 
