@@ -4,7 +4,17 @@ use std::sync::Mutex;
 use std::thread::JoinHandle;
 use std::thread;
 
-type Job =  FnOnce() + Send + 'static;
+trait FnBox {
+    fn call_box(self: Box<Self>);
+}
+
+impl<F: FnOnce()> FnBox for F {
+    fn call_box(self: Box<F>) {
+        (*self)()
+    }
+}
+
+type Job = Box<dyn FnBox + Send + 'static>;
 
 struct Worker {
     id:usize,
@@ -17,7 +27,7 @@ impl Worker {
             loop {
                 let job = receiver.lock().unwrap().recv().unwrap();
 
-                job();
+                job.call_box();
             }
         });
         let worker = Worker {
@@ -28,14 +38,14 @@ impl Worker {
     }
 }
 
-struct ThreadPool {
+pub struct ThreadPool {
     size:usize,
     workers:Vec<Worker>,
     sender: mpsc::Sender<Job>
 }
 
 impl ThreadPool {
-    fn new(_size:usize) ->ThreadPool{
+    pub fn new(_size:usize) ->ThreadPool{
         let mut workerVec = Vec::with_capacity(_size);
 
         let (_sender, receiver) = mpsc::channel();
