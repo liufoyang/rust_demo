@@ -3,11 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="7e37d743-3f0d-45c7-8795-9f591f290e45" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock_bak" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib/bft_node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib/bft_node.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/lib/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib/test.rs" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -21,24 +18,24 @@
     <session id="-1080135732">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="36" />
+          <entry key="project.closed" value="42" />
           <entry key="project.open.time.1" value="3" />
           <entry key="project.open.time.10" value="1" />
-          <entry key="project.open.time.11" value="7" />
-          <entry key="project.open.time.12" value="3" />
+          <entry key="project.open.time.11" value="8" />
+          <entry key="project.open.time.12" value="4" />
           <entry key="project.open.time.13" value="4" />
-          <entry key="project.open.time.14" value="4" />
+          <entry key="project.open.time.14" value="5" />
           <entry key="project.open.time.15" value="1" />
           <entry key="project.open.time.17" value="1" />
           <entry key="project.open.time.2" value="2" />
-          <entry key="project.open.time.21" value="1" />
+          <entry key="project.open.time.21" value="2" />
           <entry key="project.open.time.22" value="1" />
           <entry key="project.open.time.3" value="3" />
           <entry key="project.open.time.6" value="1" />
           <entry key="project.open.time.7" value="1" />
-          <entry key="project.open.time.8" value="3" />
-          <entry key="project.open.time.9" value="5" />
-          <entry key="project.opened" value="41" />
+          <entry key="project.open.time.8" value="4" />
+          <entry key="project.open.time.9" value="7" />
+          <entry key="project.opened" value="48" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
@@ -46,30 +43,32 @@
           <entry key="iml" value="2" />
           <entry key="lock" value="2" />
           <entry key="md" value="1" />
-          <entry key="rs" value="45" />
-          <entry key="toml" value="16" />
+          <entry key="rs" value="51" />
+          <entry key="toml" value="18" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="IDEA_MODULE" value="2" />
           <entry key="Markdown" value="1" />
-          <entry key="PLAIN_TEXT" value="18" />
-          <entry key="Rust" value="45" />
+          <entry key="PLAIN_TEXT" value="19" />
+          <entry key="Rust" value="51" />
+          <entry key="TOML" value="1" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="md" value="26" />
-          <entry key="rs" value="16682" />
-          <entry key="toml" value="178" />
+          <entry key="rs" value="17257" />
+          <entry key="toml" value="195" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Markdown" value="26" />
           <entry key="PLAIN_TEXT" value="178" />
-          <entry key="Rust" value="16682" />
+          <entry key="Rust" value="17257" />
+          <entry key="TOML" value="17" />
         </counts>
       </usages-collector>
     </session>
@@ -79,21 +78,85 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_node.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="222" lean-forward="true" selection-start-line="221" selection-start-column="12" selection-end-line="222" />
+            <state relative-caret-position="7201">
+              <caret line="383" column="5" selection-start-line="383" selection-start-column="5" selection-end-line="383" selection-end-column="5" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/command_executor.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="171">
+              <caret line="9" column="8" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="8" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/threadpool.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="456">
+              <caret line="24" column="42" lean-forward="true" selection-start-line="24" selection-start-column="42" selection-end-line="24" selection-end-column="42" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/mod.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="38">
+              <caret line="2" column="14" selection-start-line="2" selection-start-column="14" selection-end-line="2" selection-end-column="14" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/communication.rs">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="380">
+              <caret line="20" selection-start-line="20" selection-end-line="20" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/consensus/src/lib/test.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="379">
+            <state relative-caret-position="684">
               <caret line="38" column="38" selection-start-line="38" selection-start-column="38" selection-end-line="38" selection-end-column="38" />
-              <folding>
-                <element signature="e#90#91#0" expanded="true" />
-                <element signature="e#154#155#0" expanded="true" />
-              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="114">
+              <caret line="6" selection-start-line="6" selection-end-line="6" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/Rocket.toml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="380">
+              <caret line="20" column="11" selection-start-line="20" selection-start-column="11" selection-end-line="20" selection-end-column="11" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_message.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="380">
+              <caret line="20" column="28" selection-start-line="20" selection-start-column="22" selection-end-line="20" selection-end-column="28" />
             </state>
           </provider>
         </entry>
@@ -119,6 +182,7 @@
       <find>Bft_prepare_Message</find>
       <find>start_node</find>
       <find>receiveCommit</find>
+      <find>127.0.0.1</find>
     </findStrings>
     <replaceStrings>
       <replace>mut_own_and_reference</replace>
@@ -126,6 +190,7 @@
       <replace>Btf_Node</replace>
       <replace>u64</replace>
       <replace>Bft_PrePrepare_Message</replace>
+      <replace>localhost</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -167,11 +232,14 @@
         <option value="$PROJECT_DIR$/consensus/src/bft_domain/mod.rs" />
         <option value="$PROJECT_DIR$/consensus/src/bft_domain/bft_node.rs" />
         <option value="$PROJECT_DIR$/consensus/src/lib.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib/test.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/Rocket.toml" />
         <option value="$PROJECT_DIR$/consensus/src/main.rs" />
         <option value="$PROJECT_DIR$/consensus/Cargo.toml" />
-        <option value="$PROJECT_DIR$/consensus/src/lib/mod.rs" />
         <option value="$PROJECT_DIR$/consensus/src/lib/bft_node.rs" />
-        <option value="$PROJECT_DIR$/consensus/src/lib/test.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib/mod.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib/command_executor.rs" />
+        <option value="$PROJECT_DIR$/consensus/src/lib/threadpool.rs" />
       </list>
     </option>
   </component>
@@ -192,7 +260,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
+      <pane id="PackagesPane" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -233,28 +301,29 @@
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1572078396989" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1572100657967" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../libra" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
   </component>
   <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\project\rustDemo\consensus\src\lib" />
-      <recent name="D:\project\rustDemo\src\demo" />
-    </key>
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\project\rustDemo\consensus\src\lib" />
       <recent name="D:\project\rustDemo\consensus\src" />
       <recent name="D:\project\rustDemo\demobin\tests" />
       <recent name="D:\project\rustDemo\demobin\src" />
       <recent name="D:\project\rustDemo\src" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\project\rustDemo\consensus\src\lib" />
+      <recent name="D:\project\rustDemo\src\demo" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -352,17 +421,24 @@
       <workItem from="1571749730596" duration="1280000" />
       <workItem from="1571753770735" duration="950000" />
       <workItem from="1572054973569" duration="2912000" />
+      <workItem from="1572093859516" duration="1314000" />
+      <workItem from="1572095203584" duration="231000" />
+      <workItem from="1572099191928" duration="1081000" />
+      <workItem from="1572138832900" duration="7994000" />
+      <workItem from="1572187590432" duration="532000" />
+      <workItem from="1572614646974" duration="3604000" />
+      <workItem from="1572748103808" duration="1692000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="123664000" />
+    <option name="totallyTimeSpent" value="140112000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.38432837" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29744136" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
@@ -377,7 +453,7 @@
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Database Changes" order="7" show_stripe_button="false" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="8" sideWeight="0.4978678" visible="true" weight="0.32790446" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="8" sideWeight="0.4978678" visible="true" weight="0.3072747" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.5021322" side_tool="true" weight="0.3286334" />
       <window_info anchor="bottom" id="Version Control" order="10" />
       <window_info anchor="bottom" id="Messages" order="11" />
@@ -505,17 +581,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/lib/communication.rs">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/Cargo.lock" />
-    <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="9" column="18" selection-start-line="9" selection-start-column="18" selection-end-line="9" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/consensus/src/lib/MioConmunication.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="114">
@@ -540,27 +606,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="152">
-          <caret line="8" selection-start-line="8" selection-end-line="18" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/lib/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="57">
-          <caret line="3" column="12" selection-start-line="3" selection-start-column="12" selection-end-line="3" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_message.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="266">
-          <caret line="14" column="16" selection-start-line="14" selection-start-column="5" selection-end-line="14" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/minigrep/src/main.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="361">
@@ -570,19 +615,67 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_node.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="222" lean-forward="true" selection-start-line="221" selection-start-column="12" selection-end-line="222" />
+        <state relative-caret-position="7201">
+          <caret line="383" column="5" selection-start-line="383" selection-start-column="5" selection-end-line="383" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/command_executor.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="171">
+          <caret line="9" column="8" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="38">
+          <caret line="2" column="14" selection-start-line="2" selection-start-column="14" selection-end-line="2" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/communication.rs">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="380">
+          <caret line="20" selection-start-line="20" selection-end-line="20" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/consensus/src/lib/test.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="379">
+        <state relative-caret-position="684">
           <caret line="38" column="38" selection-start-line="38" selection-start-column="38" selection-end-line="38" selection-end-column="38" />
-          <folding>
-            <element signature="e#90#91#0" expanded="true" />
-            <element signature="e#154#155#0" expanded="true" />
-          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/main.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="6" selection-start-line="6" selection-end-line="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/Rocket.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="380">
+          <caret line="20" column="11" selection-start-line="20" selection-start-column="11" selection-end-line="20" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/bft_message.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="380">
+          <caret line="20" column="28" selection-start-line="20" selection-start-column="22" selection-end-line="20" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/consensus/src/lib/threadpool.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="24" column="42" lean-forward="true" selection-start-line="24" selection-start-column="42" selection-end-line="24" selection-end-column="42" />
         </state>
       </provider>
     </entry>
