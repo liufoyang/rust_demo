@@ -8,6 +8,7 @@ use std::result::Result;
 use super::threadpool::ThreadPool;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
+//use std::convert::From::from;
 
 ///只是做一个直接写log，写businessfile的保存命令结果。
 ///
@@ -64,18 +65,22 @@ impl Command_Executor {
         // 计算key的hash取模匹配文件index值。
         let mut hasher = DefaultHasher::new();
         hasher.write(key.as_ref());
-        let hashValue = hasher.finish();
+        let hashValue = hasher.finish() as usize;
+        let siez_str = self.size;
         let index = hashValue%self.size;
 
+        let mut logfile =  self.busifiles.get_mut(index).unwrap();
+        let mut comfile = self.busifiles.get_mut(index).unwrap();
         self.threadpools[index].execute(move||{
-            let mut logfile =  self.busifiles.get(index).unwrap();
+
             savelog(logfile, payload);
-            let mut comfile = self.busifiles.get(index).unwrap();
             commandSetValue(comfile, key, value);
         });
 
 
     }
+
+
 }
 
 fn savelog( mut file:&File, payload:&str) {
@@ -92,6 +97,8 @@ fn commandSetValue(mut file:&File, key:&str, value:&str) {
     let mut  buf = comm.as_ref();
     file.write_all(buf);
 }
+
+
 
 
 
