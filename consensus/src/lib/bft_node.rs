@@ -1,18 +1,21 @@
-use super::bft_message::{Bft_Prepare_Message, Bft_Message, Bft_Commit_Message, Bft_PrePrepare_Message, Bft_Replay};
+use super::bft_message::*;
 //
 use std::io::prelude::*;
-use std::net::TcpStream;
-use std::net::TcpListener;
-use serde::{Deserialize, Serialize};
 use serde_json::{Result, Value};
 use std::collections::HashMap;
-use reqwest;
 use std::u64;
-use rocket_contrib::json::{Json, JsonValue};
-use reqwest::r#async::Client;
 use futures::{stream, Future};
+use std::thread;
+use std::sync::mpsc;
+use std::time::SystemTime;
+use std::time::Duration;
+use super::communication;
+extern crate rustc_serialize;
+use rustc_serialize::json::{self, ToJson, Json};
+use super::communication::{BftCommunication,BftCommunicationMsg};
+use super::default_tcp_communication::Default_TCP_Communication;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Btf_Node_Simple {
     node_id:u64,
     pub address:String,
@@ -35,7 +38,7 @@ pub struct Btf_Node{
     msg_cache:HashMap<u64, Bft_Message>,
     prepare_cache: HashMap<u64, Vec<Bft_Prepare_Message>>,
     commit_cache: HashMap<u64, Vec<Bft_Commit_Message>>,
-    private_key: String,
+    private_key: String
 }
 
 impl Btf_Node {
@@ -73,7 +76,7 @@ impl Btf_Node {
     pub fn receiveClientMsg(& mut self, msg:Bft_Message) {
 
         let view_num_temp:usize = 10;
-
+        println!("begin process for");
         let primaryNodeId = self.node_list.len() % view_num_temp;
         //let promaryNodeU64:u64 = primaryNodeId.shl();
         if self.base.node_id as usize == primaryNodeId {
@@ -91,8 +94,12 @@ impl Btf_Node {
 
             if self.is_primary {
                 let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), num, msg);
-                self.broadcastMsg(&prePrepareMsg, "prePrepare");
+                let payload = json::encode(&prePrepareMsg).unwrap();
+                self.broadcastMsg(payload, "prePrepare");
             }
+
+            println!("process for primary");
+
 
         }
     }
@@ -103,19 +110,20 @@ impl Btf_Node {
         }
 
         // check if have before,if not put msg to msg_cache
-        let mut source_msg_option:Option<&Bft_Message> = Option::None;
+        //let mut source_msg_option:Option<&Bft_Message> = Option::None;
         if self.msg_cache.contains_key(& msg.get_sequence_num()) {
             // have receive this msg num before, check if the same msg
             let receive_msg = self.msg_cache.get(& msg.get_sequence_num()).unwrap();
             if receive_msg.get_id() == msg.get_client_msg().get_id(){
                 // the same
-                source_msg_option = Some(receive_msg);
+                //source_msg_option = Some(receive_msg);
 
                 // find the pre cache
                 for prepare_msg in self.prepare_cache.get(& msg.get_sequence_num()).unwrap() {
                     if prepare_msg.get_node_id() == self.get_node_base().node_id {
                         // broadcast again
-                        self.broadcastMsg(prepare_msg, "prepare");
+                        let payload = json::encode(&prepare_msg).unwrap();
+                        self.broadcastMsg(payload, "prepare");
                         break;
                     }
                 }
@@ -128,7 +136,7 @@ impl Btf_Node {
 
         } else {
             self.msg_cache.insert(msg.get_view_num(),  msg.get_client_msg().clone());
-            source_msg_option = Some(& msg.get_client_msg());
+            //source_msg_option = Some(& msg.get_client_msg());
 
             // do digest by this node
             let digest = & self.get_node_base().public_key;
@@ -147,7 +155,8 @@ impl Btf_Node {
             }
 
             // send the prepare msg
-            self.broadcastMsg(&prepare_msg, "prepare");
+            let payload = json::encode(&prepare_msg).unwrap();
+            self.broadcastMsg(payload, "prepare");
         }
     }
 
@@ -240,7 +249,8 @@ impl Btf_Node {
             }
 
             // broadcast the msg to other
-            self.broadcastMsg(&commit_msg, "commit");
+            let payload = json::encode(&commit_msg).unwrap();
+            self.broadcastMsg(payload, "commit");
         }
     }
 
@@ -309,7 +319,8 @@ impl Btf_Node {
         if commit_msg_list.len()>= min_pass_count {
             // new replay msg and send to client _view_num:u32, _payload: &str, _node_id:&str, _source_msg:Bft_Message
             let replay_msg:Bft_Replay = Bft_Replay::new(self.view_num, "succes process", self.get_node_base().node_id.clone(), msg.clone());
-            self.broadcastMsg(& replay_msg, "replay");
+            let payload = json::encode(&replay_msg).unwrap();
+            self.broadcastMsg(payload, "replay");
         }
     }
 
@@ -317,6 +328,7 @@ impl Btf_Node {
     pub fn start_node(_address:&str, _port: &str) -> Btf_Node{
 
         // send request for primary
+        let mut node_isntance:Btf_Node;
         let mut simple_vec:Vec<Btf_Node_Simple> = Vec::new();
         if _address.len() > 0 {
             // the bft network primary not null, is not the first node,send init msg to
@@ -343,9 +355,9 @@ impl Btf_Node {
             }
 
             let ip = "localhost";
-            let node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8000",node_num, false);
+            node_isntance = Btf_Node::new(view_num, simple_vec, ip, "8000",node_num, false);
 
-            return node_isntance;
+
         } else {
             // 没有其他节点，这个就是第一个节点，第一个视图
             let port = _port;
@@ -353,37 +365,44 @@ impl Btf_Node {
             let node_list = Vec::new();
             let ip = "localhost";
             let node_id = 1;
-            let node_isntance = Btf_Node::new(view_num, node_list, ip, "8000",node_id, true);
-            return node_isntance;
+            node_isntance = Btf_Node::new(view_num, node_list, ip, "8000",node_id, true);
 
         }
+
+        return node_isntance;
+    }
+
+    fn handler_expire(&self, seq_num:u64) -> Option<Bft_View_Change_Message> {
+
+        if !self.msg_cache.contains_key(&seq_num) {
+            return Option::None;
+        }
+
+        let view_change_msg = Bft_View_Change_Message::new(self.view_num.clone(), seq_num, 0, "signed", self.get_node_base().get_node_id());
+        let payload = json::encode(&view_change_msg).unwrap();
+        self.broadcastMsg(payload, "viewchange");
+        return Some(view_change_msg);
+
     }
 
     /// send message to all other node
     ///
-    fn broadcastMsg<T: Serialize >(&self, data:& T, command:&str) {
+    fn broadcastMsg (&self, data:String , command:&str) {
 
+        let payload_str = data;
         for node in &(self.node_list) {
-            let mut url = String::from("http://");
-            url.push_str(node.address.as_str());
-            url.push_str(":");
-            url.push_str(node.port.as_str());
+//            //build BftCommunicationMsg
+            let communication_msg = BftCommunicationMsg{
+                command:command.to_string(),
+                version:"v0.1".to_string(),
+                payload:payload_str.to_string()
+            };
 
-            url.push('/');
-            url.push_str(command);
-
-            // 异步发送消息
-            let future = Client::new()
-                .post(url.as_str())
-                .json(data)
-                .send();
+            Default_TCP_Communication::sendMessage(node.address.as_str(), node.port.as_str(), communication_msg);
 
         }
 
 
     }
-
-
-
 
 }

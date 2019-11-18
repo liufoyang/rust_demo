@@ -14,8 +14,8 @@ use std::hash::Hasher;
 ///
 struct Command_Executor {
     threadpools:Vec<ThreadPool>,
-    logfiles:Vec<File>,
-    busifiles:Vec<File>,
+    logfiles:Vec<String>,
+    busifiles:Vec<String>,
     size:usize
 }
 
@@ -35,13 +35,11 @@ impl Command_Executor {
 
             let mut logfile_name = String::from(index.as_str());
             logfile_name.push_str(logFileName);
-            let mut logfile = File::create(logfile_name.as_str()).unwrap();
-            logfile_vec.push(logfile);
+            logfile_vec.push(logfile_name);
 
             let mut recordfile_name = String::from(index.as_str());
             recordfile_name.push_str(recordFileName);
-            let recordfile = File::create(recordfile_name.as_str()).unwrap();
-            busi_vec.push(recordfile);
+            busi_vec.push(recordfile_name);
         }
 
         let executor =  Command_Executor {
@@ -55,47 +53,74 @@ impl Command_Executor {
     }
 
     // payload format command key value
-    fn execute(& mut self,payload:&str) {
+    fn execute(& mut self,payload:&'static str) {
         let v: Vec<&str> = payload.split(' ').collect();
 
-        let command = v[0];
-        let key = v[1];
-        let value = v[2];
 
         // 计算key的hash取模匹配文件index值。
         let mut hasher = DefaultHasher::new();
+        let key = v[1];
         hasher.write(key.as_ref());
         let hashValue = hasher.finish() as usize;
         let siez_str = self.size;
         let index = hashValue%self.size;
 
-        let mut logfile =  self.busifiles.get_mut(index).unwrap();
-        let mut comfile = self.busifiles.get_mut(index).unwrap();
-        self.threadpools[index].execute(move||{
+        {
+            let command = v[0].clone();
 
-            savelog(logfile, payload);
-            commandSetValue(comfile, key, value);
-        });
+            let key2:&'static str = key.clone();
+            let value:&'static str = v[2].clone();
+            let logfile_name: &str = self.logfiles.get(index).unwrap().as_str();
+            let comfile_name:&str = self.busifiles.get(index).unwrap().as_str();
+            let threadpool = self.threadpools.get(index).unwrap();
+
+            //doExecute(threadpool,logfile_name,command, comfile_name, key, value);
+
+            let temp_exec = move |_threadpool:&ThreadPool, _logfile_name, _payload, _comfile_name, _key, _value| {
+//                _threadpool.execute(||{
+//
+//                });
+
+                let mut logfile = File::create(_logfile_name).unwrap();
+                let s = String::from(_payload);
+                let mut  buf = s.as_ref();
+
+                logfile.write_all(buf);
+
+                let mut recordfile = File::create(_comfile_name).unwrap();
+                let mut comm = String::from(_key);
+                comm.push_str(":");
+                comm.push_str(_value);
+                let mut  buf = comm.as_ref();
+                recordfile.write_all(buf);
+
+            };
+            temp_exec(threadpool,logfile_name,command, comfile_name, key2, value);
+
+        }
 
 
     }
 
 
+
 }
 
-fn savelog( mut file:&File, payload:&str) {
+fn savelog(logfile_name:&'static str, payload:&'static str) {
+    let mut logfile = File::create(logfile_name).unwrap();
     let s = String::from(payload);
     let mut  buf = s.as_ref();
 
-    file.write_all(buf);
+    logfile.write_all(buf);
 }
 
-fn commandSetValue(mut file:&File, key:&str, value:&str) {
+fn commandSetValue(recordfile_name:&'static str, key:&'static str, value:&'static str) {
+    let mut recordfile = File::create(recordfile_name).unwrap();
     let mut comm = String::from(key);
     comm.push_str(":");
     comm.push_str(value);
     let mut  buf = comm.as_ref();
-    file.write_all(buf);
+    recordfile.write_all(buf);
 }
 
 

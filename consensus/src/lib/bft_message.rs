@@ -1,10 +1,12 @@
 /// client source msg to bft node
 /// the primiry receive the node and begin to prepare phase
-use serde_json;
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
+use std::vec::Vec;
+extern crate rustc_serialize;
+// 引入rustc_serialize模块
+use rustc_serialize::json;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
 pub struct Bft_Message {
     id:String,
     client_id:String,
@@ -34,12 +36,13 @@ impl Bft_Message {
 
 ///  use to contain the byte[] of Bft_Message
 ///  do the hash for Bft_Message
-
+#[derive(Clone)]
 pub struct Bft_Message_Bytes<'a>(pub &'a [u8]);
 
 /// the replay to client from Bft node
 ///  every Bft node non fault will send the repay;
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
 pub struct Bft_Replay{
     view_num:u64,
     timestamp:u64,
@@ -60,7 +63,8 @@ impl Bft_Replay {
         return replay;
     }
 }
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
 pub struct Bft_PrePrepare_Message {
     view_num:u64,
     sequence_num:u64,
@@ -98,7 +102,8 @@ impl Bft_PrePrepare_Message {
     }
 
 }
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
 pub struct Bft_Prepare_Message {
     view_num:u64,
     sequence_num:u64,
@@ -133,7 +138,8 @@ impl Bft_Prepare_Message {
         return self.node_id.clone();
     }
 }
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
 pub struct Bft_Commit_Message {
     view_num:u64,
     sequence_num:u64,
@@ -165,5 +171,36 @@ impl Bft_Commit_Message {
 
     pub fn get_node_id(&self) -> u64 {
         return self.node_id.clone();
+    }
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
+pub struct Bft_View_Change_Message {
+    view_num:u64,
+    sequence_num:u64,
+    check_point_num:u64,
+    node_id:u64,
+    msg_digest:String,
+    prepare_msg_list: Vec<Bft_Prepare_Message>
+}
+
+impl Bft_View_Change_Message {
+    pub fn new(_view_num:u64, _seq_num:u64, _check_point_num:u64, _digest:&str, _node_id:u64) -> Bft_View_Change_Message {
+        let msg = Bft_View_Change_Message{
+            view_num:_view_num,
+            sequence_num:_seq_num,
+            check_point_num:_check_point_num,
+            node_id:_node_id,
+            msg_digest:_digest.to_string(),
+            prepare_msg_list: Vec::new()
+        };
+
+        return msg;
+
+    }
+
+    pub fn addPrePareMsg(&mut self, prePare:Bft_Prepare_Message) {
+        self.prepare_msg_list.push(prePare);
     }
 }
