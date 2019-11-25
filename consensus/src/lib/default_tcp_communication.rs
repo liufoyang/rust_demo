@@ -7,14 +7,15 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 use std::boxed::Box;
 use super::communication::{BftCommunication,BftCommunicationMsg};
+use std::result::Result;
 
 pub struct Default_TCP_Communication {
     listener:TcpListener,
-    sender: Sender<Box<BftCommunicationMsg>>
+    sender: Sender<Box<(BftCommunicationMsg, TcpStream)>>
 }
 
 impl Default_TCP_Communication {
-    pub fn startListen(addr:&str, port:&str) ->Receiver<Box<BftCommunicationMsg>> {
+    pub fn startListen(addr:&str, port:&str) ->Receiver<Box<(BftCommunicationMsg, TcpStream)>> {
         let mut address_all = String::from(addr);
         address_all.push_str(":");
         address_all.push_str(port);
@@ -35,9 +36,9 @@ impl Default_TCP_Communication {
                 let mut stream = stream.unwrap();
                 let mut buffer = [0; 2048];
 
-                stream.read(&mut buffer).unwrap();
-
-                let message_str = String::from_utf8_lossy(&buffer[..]);
+                let lensize = stream.read(&mut buffer).unwrap();
+                let (left, right)  = buffer.split_at(lensize);
+                let message_str = String::from_utf8_lossy(&left[..]);
 
                 println!("receive one msg {}",message_str);
 
@@ -99,7 +100,7 @@ impl Default_TCP_Communication {
                     payload:payload
                 };
 
-                let box_msg = Box::new(communication_msg);
+                let box_msg = Box::new((communication_msg,stream));
                 println!("send msg to processor");
                 commincation.sender.send(box_msg);
             }
@@ -113,9 +114,10 @@ impl Default_TCP_Communication {
         address_all.push_str(":");
         address_all.push_str(port);
 
-        let stream_result = TcpStream::connect(address_all);
+        let stream_result = TcpStream::connect(address_all.as_str());
         if !stream_result.is_ok() {
             // not connection
+            println!("connection {} fail {:?}", address_all, stream_result.err());
             return;
         }
 
@@ -123,5 +125,40 @@ impl Default_TCP_Communication {
         let data_str = data.to_string();
         //let msg_data = .as_bytes();
         stream.write(data_str.as_bytes());
+
+        println!("send finish {} {}", address_all, data_str);
+    }
+
+    pub fn sendMessageWithReply(address:&str, port:&str, data:BftCommunicationMsg) ->Result<String, &'static str>{
+        let mut address_all = String::from(address);
+        address_all.push_str(":");
+        address_all.push_str(port);
+
+        let stream_result = TcpStream::connect(address_all.as_str());
+        if !stream_result.is_ok() {
+            // not connection
+            println!("connection {} fail {:?}", address_all, stream_result.err());
+            return Err("connection fail");
+        }
+
+        let mut stream = stream_result.unwrap();
+        let data_str = data.to_string();
+        //let msg_data = .as_bytes();
+        stream.write(data_str.as_bytes());
+
+        println!("send finish {} {}", address_all, data_str);
+
+        let mut buffer = [0; 2048];
+
+        let read_result = stream.read(&mut buffer);
+        if !read_result.is_ok() {
+            println!("send finish {:?}", read_result.err());
+            return Err("read stram error");
+        } else {
+            let (left, right)  = buffer.split_at(read_result.unwrap());
+            let reply_str = String::from_utf8_lossy(&left[..]);
+            return Ok(reply_str.to_string());
+        }
+
     }
 }

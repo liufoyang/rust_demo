@@ -1,9 +1,11 @@
 /// client source msg to bft node
 /// the primiry receive the node and begin to prepare phase
 use std::vec::Vec;
+use super::bft_node::Btf_Node_Simple;
 extern crate rustc_serialize;
 // 引入rustc_serialize模块
 use rustc_serialize::json;
+use std::time::SystemTime;
 
 #[derive(RustcDecodable, RustcEncodable)]
 #[derive(Clone)]
@@ -11,6 +13,7 @@ pub struct Bft_Message {
     id:String,
     client_id:String,
     payload:String,
+    status:i32,
     timestamp:u64
 }
 
@@ -20,7 +23,8 @@ impl Bft_Message {
             payload:_payload.to_string(),
             client_id: _client_id.to_string(),
             id: "1232345".to_string(),
-            timestamp:100000
+            timestamp:100000,
+            status:1
         };
         return msg;
     }
@@ -31,6 +35,18 @@ impl Bft_Message {
 
     pub fn get_id(&self) -> &str {
         return self.id.as_str()
+    }
+
+    pub fn get_payload(&self) ->&str {
+        return self.payload.as_str()
+    }
+
+    pub fn set_status(&mut self, _status:i32) {
+        self.status = _status;
+    }
+
+    pub fn get_status(&self) -> i32{
+        return self.status.clone();
     }
 }
 
@@ -62,6 +78,12 @@ impl Bft_Replay {
         };
         return replay;
     }
+}
+
+pub struct Bft_PrePrepare_Simple {
+    pub view_num:u64,
+    pub sequence_num:u64,
+    pub time:SystemTime
 }
 #[derive(RustcDecodable, RustcEncodable)]
 #[derive(Clone)]
@@ -202,5 +224,58 @@ impl Bft_View_Change_Message {
 
     pub fn addPrePareMsg(&mut self, prePare:Bft_Prepare_Message) {
         self.prepare_msg_list.push(prePare);
+    }
+}
+
+
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
+pub struct Bft_Regist_Msg{
+    pub address:String,
+    pub port:String,
+    pub public_key: String,
+}
+
+impl Bft_Regist_Msg {
+    pub fn new(_address:&str, _port:&str, _pubKey:&str) -> Bft_Regist_Msg{
+        let msg = Bft_Regist_Msg{
+            address:_address.to_string(),
+            port:_port.to_string(),
+            public_key: _pubKey.to_string(),
+        };
+        return msg;
+    }
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
+#[derive(Clone)]
+pub struct Bft_Regist_Reply{
+    node_list: Vec<Btf_Node_Simple>,
+    view_num:u64,
+    check_point_num:u64,
+    node_id:u64,
+}
+
+impl Bft_Regist_Reply {
+    pub fn new(_node_list:Vec<Btf_Node_Simple>, _view_num:u64, _check_point_num:u64, _node_id:u64) -> Bft_Regist_Reply{
+        let msg = Bft_Regist_Reply{
+            node_list: _node_list,
+            view_num:_view_num,
+            check_point_num:_check_point_num,
+            node_id:_node_id,
+        };
+        return msg;
+    }
+
+    pub fn get_node_ist(&self) -> Vec<Btf_Node_Simple> {
+        return (self.node_list.clone());
+    }
+
+    pub fn get_view_num(&self) -> u64 {
+        return self.view_num.clone();
+    }
+
+    pub fn get_node_id(&self) -> u64 {
+        return self.node_id.clone();
     }
 }

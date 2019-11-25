@@ -14,7 +14,7 @@ impl<F: FnOnce()> FnBox for F {
     }
 }
 
-type Job = Box<dyn FnBox + Send + 'static>;
+type Job = Box<dyn FnBox + Send +'static>;
 
 struct Worker {
     id:usize,
@@ -25,9 +25,13 @@ impl Worker {
     fn new(_id:usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         let thread_instance = thread::spawn( move||{
             loop {
-                let job = receiver.lock().unwrap().recv().unwrap();
+                let job_result  = receiver.lock().unwrap().recv();
 
-                job.call_box();
+                if job_result.is_ok() {
+                    let job = job_result.unwrap();
+                    job.call_box();
+                }
+
             }
         });
         let worker = Worker {
@@ -43,6 +47,7 @@ pub struct ThreadPool {
     workers:Vec<Worker>,
     sender: mpsc::Sender<Job>
 }
+
 
 impl ThreadPool {
     pub fn new(_size:usize) ->ThreadPool{
@@ -66,7 +71,7 @@ impl ThreadPool {
 
     pub fn execute<F>(&self, f: F)
         where
-            F: FnOnce() + Send + 'static {
+            F: FnOnce() + Send +'static {
         let job = Box::new(f);
         self.sender.send(job).unwrap();
     }

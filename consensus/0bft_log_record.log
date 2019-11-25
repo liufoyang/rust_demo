@@ -1,0 +1,19 @@
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 {"view_num":1,"sequence_num":0,"msg_digest":"","node_id":1}
+commit 0 {"view_num":1,"sequence_num":0,"msg_digest":"","node_id":1}
+commit 0 {"view_num":1,"sequence_num":0,"msg_digest":"","node_id":1}
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 receiveMsg hello world
+commit 0 receiveMsg hello world
+commit 0 receiveMsg hello world
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 receiveMsg hello world
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 receiveMsg hello world
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 receiveMsg hello world
+receiveMsg 0 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000,"status":0}
+commit 0 receiveMsg hello world
+commit 0 receiveMsg hello world
+commit 0 receiveMsg hello world
+commit 0 receiveMsg hello world

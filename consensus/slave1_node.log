@@ -1,0 +1,118 @@
+config file slave1_node_config.json
+bengin to broadcase
+send finish 10.3.209.223:8780 regist v0.1 62
+{"address":"10.3.209.223","port":"8781","public_key":"pubKey"}
+
+send to primary node regist
+receive one connection
+receive one msg newnode v0.1 74
+{"node_id":3,"address":"10.3.209.223","port":"8782","public_key":"pubKey"}
+
+send msg to processor
+newnode command
+have a new node 3
+receive one connection
+receive one msg newnode v0.1 74
+{"node_id":4,"address":"10.3.209.223","port":"8783","public_key":"pubKey"}
+
+send msg to processor
+newnode command
+have a new node 4
+receive one connection
+receive one msg prePrepare v0.1 171
+{"view_num":1,"sequence_num":0,"msg_digest":"","client_msg":{"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","status":0,"timestamp":100000}}
+
+send msg to processor
+receive prePrepare command
+begin doPrepare for
+doPrepare new  sequence num msg
+bengin to broadcase 4
+send finish 10.3.209.223:8780 prepare v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+send to node 10.3.209.223
+send finish 10.3.209.223:8782 prepare v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+receive one connection
+receive one msg prepare v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":3}
+
+send msg to processor
+receive one connection
+send to node 10.3.209.223
+receive one msg prepare v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":4}
+
+send msg to processor
+send finish 10.3.209.223:8783 prepare v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+send to node 10.3.209.223
+receive prepare command
+bein receivePrepare
+enough prepare 2 3
+receive prepare command
+bein receivePrepare
+enough prepare 3 3
+begin to commit 0
+write the log file commit 0 receiveMsg hello world
+
+commit msg {"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+bengin to broadcase 4
+send finish 10.3.209.223:8780 commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+send to node 10.3.209.223
+receive one connection
+receive one msg commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":1}
+
+send msg to processor
+receive one connection
+receive one msg commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":4}
+
+send msg to processor
+receive one connection
+receive one msg commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":3}
+
+send msg to processor
+send finish 10.3.209.223:8782 commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+send to node 10.3.209.223
+send finish 10.3.209.223:8783 commit v0.1 59
+{"view_num":1,"sequence_num":0,"msg_digest":"","node_id":2}
+
+send to node 10.3.209.223
+receive commit command
+enough commit 2 2
+bengin to broadcase 4
+send finish 10.3.209.223:8780 replay v0.1 101
+{"view_num":1,"timestamp":100000,"client_id":"bft_client0001","node_id":2,"payload":"succes process"}
+
+send to node 10.3.209.223
+send finish 10.3.209.223:8782 replay v0.1 101
+{"view_num":1,"timestamp":100000,"client_id":"bft_client0001","node_id":2,"payload":"succes process"}
+
+send to node 10.3.209.223
+send finish 10.3.209.223:8783 replay v0.1 101
+{"view_num":1,"timestamp":100000,"client_id":"bft_client0001","node_id":2,"payload":"succes process"}
+
+receive one connection
+send to node 10.3.209.223
+receive one msg replay v0.1 101
+{"view_num":1,"timestamp":100000,"client_id":"bft_client0001","node_id":3,"payload":"succes process"}
+
+receive commit command
+send msg to processor
+receive one connection
+receive one msg replay v0.1 101
+{"view_num":1,"timestamp":100000,"client_id":"bft_client0001","node_id":4,"payload":"succes process"}
+
+receive unknow command
+send msg to processor
+receive commit command
+receive unknow command

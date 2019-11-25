@@ -1,0 +1,6 @@
+receiveMsg 1 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000}
+commit 1 {"view_num":1,"sequence_num":1,"msg_digest":"","node_id":1}
+receiveMsg 2 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000}
+commit 2 {"view_num":1,"sequence_num":2,"msg_digest":"","node_id":1}
+receiveMsg 1 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000}
+commit 1 {"view_num":1,"sequence_num":1,"msg_digest":"","node_id":1}

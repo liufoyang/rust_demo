@@ -23,7 +23,7 @@ impl BftCommunicationMsg {
 
         msg_str.push_str("\n");
         msg_str.push_str(self.payload.as_str());
-
+        msg_str.push_str("\n");
         return msg_str;
     }
 }

@@ -1,0 +1,7 @@
+{   "primaryIp": "",
+    "primaryPort": "8780",
+    "nodeIP": "10.3.209.223",
+    "nodePort": "8780",
+    "pubKey": "pubkey",
+    "privateKey": "priKey"
+}
