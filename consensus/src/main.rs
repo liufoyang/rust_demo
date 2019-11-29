@@ -3,10 +3,11 @@ use std::sync::{Mutex,Arc};
 use std::rc::Rc;
 mod lib;
 use lib::bft_node::{Btf_Node_Simple,Btf_Node};
-use lib::bft_message::{Bft_Prepare_Message, Bft_Message, Bft_Commit_Message, Bft_PrePrepare_Message, Bft_Replay, Bft_PrePrepare_Simple, Bft_Regist_Msg, Bft_Regist_Reply};
+use lib::bft_message::*;
 use lib::default_tcp_communication::Default_TCP_Communication;
 use lib::threadpool::ThreadPool;
 use lib::default_tcp_communication;
+use lib::bft_signtor;
 use std::thread;
 extern crate rustc_serialize;
 use rustc_serialize::json;
@@ -22,51 +23,10 @@ use std::result::Result;
 use std::fs::File;
 use std::io::{Read,Write};
 use std::env;
-
-
-//#[macro_use]
-//extern crate lazy_static;
-//
-//lazy_static! {
-//    static ref NODEMUTEX: Arc<Mutex<Btf_Node>> = {
-//
-//        let mut node:Btf_Node = Btf_Node::start_node("", "8000");
-//        let mutex: Arc<Mutex<Btf_Node>> = Arc::new(Mutex::new(node));
-//        return mutex;
-//    };
-//}
-//
-//#[post("/receiveMsg", data = "<bft_msg>")]
-//fn receiveMsg(bft_msg:Json<Bft_Message>) -> &'static str {
-//    let mutex = Arc::clone(&NODEMUTEX);
-//    let mut node = mutex.lock().unwrap();
-//    node.receiveClientMsg(bft_msg.into_inner());
-//    return "receive msg";
-//}
-//
-//#[post("/prePrepare", data = "<bft_msg>")]
-//fn prePrepare(bft_msg:Json<Bft_PrePrepare_Message>) -> &'static str {
-//    let mutex = Arc::clone(&NODEMUTEX);
-//    let mut node = mutex.lock().unwrap();
-//    node.doPrepare(bft_msg.into_inner());
-//    return "receive pre prepare msg";
-//}
-//
-//#[post("/receivePrepare", data = "<bft_msg>")]
-//fn receivePrepare(bft_msg:Json<Bft_Prepare_Message>) -> &'static str {
-//    let mutex = Arc::clone(&NODEMUTEX);
-//    let mut node = mutex.lock().unwrap();
-//    node.receivePrepare(bft_msg.into_inner());
-//    return "receive prepare msg";
-//}
-//
-//#[post("/receiveCommit", data = "<bft_msg>")]
-//fn receiveCommit(bft_msg:Json<Bft_Commit_Message>) -> &'static str {
-//    let mutex = Arc::clone(&NODEMUTEX);
-//    let mut node = mutex.lock().unwrap();
-//    node.receiveCommit(bft_msg.into_inner());
-//    return "receive commit msg";
-//}
+use std::collections::BTreeSet;
+extern crate rustc_hex;
+use rustc_hex::{FromHex,ToHex};
+extern crate crypto;
 
 #[derive(RustcDecodable, RustcEncodable)]
 #[derive(Clone)]
@@ -140,7 +100,7 @@ fn main() {
                     let pre_timeout = pre_prepare_num_list.get(0).unwrap();
                     if pre_timeout.time.elapsed().unwrap() > time_out_second {
                         let mut node = mutex_sub.lock().unwrap();
-                        node.handler_expire(pre_timeout.sequence_num.clone());
+                        node.handler_expire(pre_timeout.msg_sign.as_str());
                         pre_prepare_num_list.remove(0);
                     }
                 }
@@ -155,6 +115,33 @@ fn main() {
 
     if !expire_handler.is_ok() {
         println!("error to start expire thread {:?}", expire_handler.err())
+    }
+
+
+    let is_run_checkpoint = Arc::clone(&running);
+    let mutex_checkpoint = Arc::clone(&node_mutex);
+    let executor_checkpoint = Arc::clone(&executor_mutex);
+    let checkpoint_handler = thread::Builder::new().name("checkpoint_process".to_string()).spawn(move||
+        {
+            while(true) {
+
+                let mut node = mutex_checkpoint.lock().unwrap();
+                let mut executor = executor_checkpoint.lock().unwrap();
+                node.save_checkpoin(&mut executor);
+
+                let minu_5 = Duration::from_secs(300);
+                thread::sleep(minu_5);
+
+                let is_run = is_run_checkpoint.lock().unwrap();
+                if ! *is_run {
+                    break;
+                }
+            }
+
+        });
+
+    if !checkpoint_handler.is_ok() {
+        println!("error to start expire thread {:?}", checkpoint_handler.err())
     }
 
     while(true) {
@@ -191,14 +178,23 @@ fn main() {
 
                         //
                         let mut executor = executor_sub.lock().unwrap();
-                        let sequence_num =  node.receiveClientMsg(node_msg, &mut executor);
+                        let msg_md5_sign =  node.receiveClientMsg(node_msg, &mut executor);
                         let mut logs_str = String::from("receiveMsg ");
-                        logs_str.push_str(sequence_num.to_string().as_str());
+                        logs_str.push_str(msg_md5_sign.as_str());
                         logs_str.push_str(" ");
                         logs_str.push_str(payload);
                         executor.savelog(logs_str.as_str());
 
-                        stream.write("get it".as_bytes());
+                        // send timeout
+                        let now = SystemTime::now();
+
+                        let pre_timeout = Bft_PrePrepare_Simple {
+                            view_num:0,
+                            msg_sign:msg_md5_sign.to_string(),
+                            time:now
+                        };
+                        let pre_sender = pre_sender_sub.lock().unwrap();
+                        pre_sender.send(pre_timeout);
                     }
                     println!("quit command");
 
@@ -209,16 +205,11 @@ fn main() {
                         println!("parse prePrepare msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
-                        let(view_num, sequece_num) = node.doPrepare(node_msg);
-                        let now = SystemTime::now();
+                        let result = node.doPrepare(node_msg);
 
-                        let pre_timeout = Bft_PrePrepare_Simple {
-                            view_num:view_num,
-                            sequence_num:sequece_num,
-                            time:now
-                        };
-                        let pre_sender = pre_sender_sub.lock().unwrap();
-                        pre_sender.send(pre_timeout);
+                        if result.is_some() {
+                            let (view_num, sequece_num) = result.unwrap();
+                        }
                     }
 
                 } else if(msg.command.as_str() == "prepare") {
@@ -271,7 +262,60 @@ fn main() {
                     }
 
 
-                }else {
+                }else if(msg.command.as_str() == "viewchange") {
+                    println!("newnode command");
+                    let node_msg_result:DecodeResult<Bft_View_Change_Message> = json::decode(&msg.payload);
+                    if(!node_msg_result.is_ok()) {
+                        println!("parse newnode msg json error {}", node_msg_result.err().unwrap());
+                    } else {
+                        let view_change = node_msg_result.unwrap();
+                        node.receiveViewChange(view_change);
+                    }
+
+
+                }else if(msg.command.as_str() == "newview") {
+                    println!("newnode command");
+                    let node_msg_result:DecodeResult<Bft_New_View_Message> = json::decode(&msg.payload);
+                    if(!node_msg_result.is_ok()) {
+                        println!("parse newnode msg json error {}", node_msg_result.err().unwrap());
+                    } else {
+                        let new_view_msg = node_msg_result.unwrap();
+                        node.receiveNewView(new_view_msg);
+                    }
+
+
+                }else if (msg.command.as_str() == "forword"){
+                    println!("receive forword msg {}", msg.payload);
+                    let payload = msg.payload.as_str();
+                    //let clientMsg_encode:Bft_Message = json::decode(&encode_str).unwrap();
+                    let node_msg_result:DecodeResult<Bft_Message> = json::decode(&payload);
+                    if(!node_msg_result.is_ok()) {
+                        println!("parse client msg json error {}", node_msg_result.err().unwrap());
+                    } else {
+                        let node_msg = node_msg_result.unwrap();
+
+                        //
+                        let mut executor = executor_sub.lock().unwrap();
+                        let msg_md5_sign =  node.receiveForwordMsg(node_msg, &mut executor);
+                        let mut logs_str = String::from("receiveMsg ");
+                        logs_str.push_str(msg_md5_sign.as_str());
+                        logs_str.push_str(" ");
+                        logs_str.push_str(payload);
+                        executor.savelog(logs_str.as_str());
+
+                        // send timeout
+                        let now = SystemTime::now();
+
+                        let pre_timeout = Bft_PrePrepare_Simple {
+                            view_num:0,
+                            msg_sign:msg_md5_sign.to_string(),
+                            time:now
+                        };
+                        let pre_sender = pre_sender_sub.lock().unwrap();
+                        pre_sender.send(pre_timeout);
+                    }
+
+                } else {
                     println!("receive unknow command");
                     stream.write("unknow message format".as_bytes());
                 }

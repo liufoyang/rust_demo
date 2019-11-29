@@ -4,3 +4,35 @@ receiveMsg 2 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg 
 commit 2 {"view_num":1,"sequence_num":2,"msg_digest":"","node_id":1}
 receiveMsg 1 {"id":"1232345","client_id":"bft_client0001","payload":"receiveMsg hello world","timestamp":100000}
 commit 1 {"view_num":1,"sequence_num":1,"msg_digest":"","node_id":1}
+receiveMsg 1 {"id":"10000","client_id":"bft_client0001","payload":"put first_key=hello","timestamp":100000,"status":0}
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+receiveMsg 2 {"id":"10001","client_id":"bft_client0001","payload":"put first_key=hello agin","timestamp":100000,"status":0}
+commit 2 put first_key=hello agin
+commit 2 put first_key=hello agin
+commit 2 put first_key=hello agin
+commit 2 put first_key=hello agin
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+receiveMsg 9cd9398c73cbf82a6e4903e46ed0c711 {"id":"10001","client_id":"bft_client0001","payload":"put first_key=hello3","status":0,"timestamp":100000,"md5sign":""}
+receiveMsg 9cd9398c73cbf82a6e4903e46ed0c711 {"id":"10001","client_id":"bft_client0001","payload":"put first_key=hello3","timestamp":100000,"status":0,"md5sign":""}
+receiveMsg 9cd9398c73cbf82a6e4903e46ed0c711 {"id":"10001","client_id":"bft_client0001","payload":"put first_key=hello3","status":0,"timestamp":100000,"md5sign":""}
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello3
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello2
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello
+commit 1 put first_key=hello

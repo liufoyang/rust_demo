@@ -16,6 +16,12 @@ use rustc_serialize::json::{self, ToJson, Json};
 use super::communication::{BftCommunication,BftCommunicationMsg};
 use super::default_tcp_communication::Default_TCP_Communication;
 use rustc_serialize::json::DecodeResult;
+use std::collections::BTreeSet;
+extern crate crypto;
+use crypto::md5;
+use super::bft_signtor::Bft_Signtor;
+extern crate rustc_hex;
+use rustc_hex::{FromHex,ToHex};
 
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -49,23 +55,37 @@ pub struct Btf_Node{
     base:Btf_Node_Simple,
     status:String,
     view_num:u64,
+    seq_num:u64,
     is_primary: bool,
     node_list: Vec<Btf_Node_Simple>,
     msg_cache:HashMap<u64, Bft_Message>,
+    msg_sign_cache:BTreeSet<String>,
     prepare_cache: HashMap<u64, Vec<Bft_Prepare_Message>>,
     commit_cache: HashMap<u64, Vec<Bft_Commit_Message>>,
-    private_key: String,
+    viewchange_cache: HashMap<u64, Vec<Bft_View_Change_Message>>,
     executor: Command_Executor,
+    signtor:Bft_Signtor,
+    check_point_num: u64,
 }
 
 impl Btf_Node {
 
     fn new(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool) -> Btf_Node{
+
+        let signer = Bft_Signtor::new();
+        return Btf_Node::new_with_signtor(_view_num,_node_list, _ip, _port, _node_id, isPrimary, signer);
+    }
+
+    pub fn set_status(&mut self, new_status:&str) {
+        self.status = new_status.to_string();
+    }
+
+    pub fn new_with_signtor(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool, _signtor:Bft_Signtor) -> Btf_Node{
         let bft_simple = Btf_Node_Simple{
             node_id:_node_id,
             address:_ip.to_string(),
             port: _port.to_string(),
-            public_key:"".to_string()
+            public_key:_signtor.get_public_key(),
         };
 
         // put self to the node list
@@ -76,13 +96,17 @@ impl Btf_Node {
             base:bft_simple,
             status:"new".to_string(),
             view_num:_view_num,
+            seq_num:0,
             is_primary:isPrimary,
             node_list:_node_list,
             msg_cache:HashMap::new(),
+            msg_sign_cache:BTreeSet::new(),
             prepare_cache:HashMap::new(),
             commit_cache:HashMap::new(),
-            private_key: "private".to_string(),
+            viewchange_cache:HashMap::new(),
             executor:command_executor,
+            signtor:_signtor,
+            check_point_num: 0,
 
         };
 
@@ -93,44 +117,109 @@ impl Btf_Node {
         return &(self.base);
     }
 
-    pub fn receiveClientMsg(& mut self, msg:Bft_Message, executor:&mut Command_Executor) -> u64 {
+    fn get_node_pub_key(&self, node_id:&u64) -> Option<String> {
+        let mut pub_key_result = Option::None;
+        for simple in &self.node_list {
+            if simple.node_id == *node_id {
+                pub_key_result = Some(simple.public_key.clone());
+                break;
+            }
+        }
+
+        return pub_key_result;
+    }
+
+    pub fn receiveClientMsg(& mut self, msg:Bft_Message, executor:&mut Command_Executor) -> String {
 
         let view_num_temp:usize = 10;
         println!("begin process for");
 
+        let msg_md5 = msg.signMd5();
+
+        let msg_md5_str =msg_md5.to_string();
+        if self.msg_sign_cache.contains(&msg_md5.to_string()) {
+            return msg_md5_str;
+        }
+
+        self.msg_sign_cache.insert(msg_md5.to_string());
         if self.is_primary {
             // is primary node send prepare
             let keys = self.msg_cache.keys();
-            let mut num:u64 = 0;
-            for key in keys {
-                if &num <= key {
-                    num = key + 1;
-                }
-            }
+            let mut num:u64 = self.seq_num + 1;
 
             // clone one msg save in self node;
             self.msg_cache.insert(num.clone(), msg.clone());
-            let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), num, msg);
-            let payload = json::encode(&prePrepareMsg).unwrap();
+            let mut prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), self.get_node_base().get_node_id(), num.clone(), msg);
+            let mut payload = json::encode(&prePrepareMsg).unwrap();
+
+            let sign = self.signtor.sign_string(payload.as_str());
+            prePrepareMsg.set_msg_digest(sign);
+            payload = json::encode(&prePrepareMsg).unwrap();
 
             //self.executor.execute(payload.as_str());
             self.broadcastMsg(payload, "prePrepare");
 
             println!("process for primary");
-            return num;
+            self.doPrepare(prePrepareMsg);
+
+            self.seq_num = num;
+            return msg_md5_str;
 
         } else {
-            return 0;
+            // broadcast the msg to other node
+            let payload = json::encode(&msg).unwrap();
+
+            //self.executor.execute(payload.as_str());
+            self.broadcastMsg(payload, "forword");
+            return msg_md5_str;
         }
     }
-    pub fn doPrepare(& mut self,  msg:Bft_PrePrepare_Message) -> (u64, u64){
+
+    pub fn receiveForwordMsg(& mut self, msg:Bft_Message, executor:&mut Command_Executor) -> String {
+
+        if self.is_primary {
+            return self.receiveClientMsg(msg, executor);
+        } else {
+            let msg_md5 = msg.signMd5();
+
+            let md5_str = msg_md5.to_string();
+            if !self.msg_sign_cache.contains(&md5_str) {
+                self.msg_sign_cache.insert(md5_str.clone());
+            }
+            return md5_str;
+        }
+    }
+    pub fn doPrepare(& mut self,  msg:Bft_PrePrepare_Message) -> Option<(u64, u64)>{
 
         println!("begin doPrepare for");
+
+        // check sign for node
+        let mut sign_msg = msg.clone();
+        let msg_digest = msg.get_msg_digest();
+        sign_msg.set_msg_digest(String::new());
+        let msg_node_id = sign_msg.get_node_id();
+        let pub_key_result = self.get_node_pub_key(&msg_node_id);
+
+        if pub_key_result.is_none() {
+            println!("can not found  node id for {}", sign_msg.get_node_id());
+            return Option::None;
+        }
+
+        let signMsgStr = json::encode(&sign_msg).unwrap();
+        if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
+            println!("msg sign not pass for {}", sign_msg.get_node_id());
+            return Option::None;
+        }
 
         // check is the primary message, check the digest by primary pub key;
         if msg.get_view_num() != self.view_num {
             println!("doPrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
-            return (msg.get_view_num(), msg.get_sequence_num());
+            return Some((msg.get_view_num(), msg.get_sequence_num()));
+        }
+
+        let sequence_num = msg.get_sequence_num();
+        if !self.is_primary && sequence_num > self.seq_num {
+            self.seq_num = msg.get_sequence_num();
         }
 
         // check if have before,if not put msg to msg_cache
@@ -138,15 +227,15 @@ impl Btf_Node {
         if self.msg_cache.contains_key(& msg.get_sequence_num()) {
             println!("doPrepare have recevie the sequence num ");
             // have receive this msg num before, check if the same msg
-            let receive_msg = self.msg_cache.get(& msg.get_sequence_num()).unwrap();
+            let receive_msg = self.msg_cache.get(& sequence_num).unwrap();
             if receive_msg.get_id() == msg.get_client_msg().get_id(){
                 // the same
                 //source_msg_option = Some(receive_msg);
 
                 // find the pre cache
                 let mut has_send= false;
-                if self.prepare_cache.contains_key(& msg.get_sequence_num()) {
-                    for prepare_msg in self.prepare_cache.get(& msg.get_sequence_num()).unwrap() {
+                if self.prepare_cache.contains_key(& sequence_num) {
+                    for prepare_msg in self.prepare_cache.get(& sequence_num).unwrap() {
                         if prepare_msg.get_node_id() == self.get_node_base().node_id {
                             // broadcast again
                             let payload = json::encode(&prepare_msg).unwrap();
@@ -158,11 +247,16 @@ impl Btf_Node {
                 }
 
                 if !has_send {
-                    let digest = & self.get_node_base().public_key;
-
                     // check pass add to prepare cache;
-                    let prepare_msg = Bft_Prepare_Message::new(self.view_num, msg.get_sequence_num(), digest.as_str(), self.get_node_base().node_id);
+                    let mut prepare_msg = Bft_Prepare_Message::new(self.view_num, msg.get_sequence_num(), self.get_node_base().node_id);
                     let seq_num = msg.get_sequence_num();
+
+                    // send the prepare msg
+                    let mut payload = json::encode(&prepare_msg).unwrap();
+                    let sign = self.signtor.sign_string(payload.as_str());
+                    prepare_msg.set_msg_digest(sign);
+                    payload = json::encode(&prepare_msg).unwrap();
+
                     if self.prepare_cache.contains_key(& seq_num) {
                         let list = self.prepare_cache.get_mut(& seq_num).unwrap();
                         list.push(prepare_msg.clone());
@@ -172,8 +266,6 @@ impl Btf_Node {
                         self.prepare_cache.insert(seq_num, prepare_vec);
                     }
 
-                    // send the prepare msg
-                    let payload = json::encode(&prepare_msg).unwrap();
                     self.broadcastMsg(payload, "prepare");
                 }
 
@@ -185,7 +277,7 @@ impl Btf_Node {
                 // not same msg for the same num
 
             }
-            return (msg.get_view_num(), msg.get_sequence_num());
+            return Some((msg.get_view_num(), msg.get_sequence_num()));
 
         } else {
             println!("doPrepare new  sequence num msg");
@@ -194,12 +286,14 @@ impl Btf_Node {
             self.msg_cache.insert(msg.get_sequence_num(),  client_msg);
             //source_msg_option = Some(& msg.get_client_msg());
 
-            // do digest by this node
-            let digest = & self.get_node_base().public_key;
-            // new the prepare msg for this node
 
             // check pass add to prepare cache;
-            let prepare_msg = Bft_Prepare_Message::new(self.view_num, msg.get_sequence_num(), digest.as_str(), self.get_node_base().node_id);
+            let mut prepare_msg = Bft_Prepare_Message::new(self.view_num, msg.get_sequence_num(),  self.get_node_base().node_id);
+            let mut payload = json::encode(&prepare_msg).unwrap();
+            let sign = self.signtor.sign_string(payload.as_str());
+            prepare_msg.set_msg_digest(sign);
+            payload = json::encode(&prepare_msg).unwrap();
+
             let seq_num = msg.get_sequence_num();
             if self.prepare_cache.contains_key(& seq_num) {
                 let list = self.prepare_cache.get_mut(& seq_num).unwrap();
@@ -211,10 +305,9 @@ impl Btf_Node {
             }
 
             // send the prepare msg
-            let payload = json::encode(&prepare_msg).unwrap();
             self.broadcastMsg(payload, "prepare");
 
-            return (msg.get_view_num(), msg.get_sequence_num());
+            return Some((msg.get_view_num(), msg.get_sequence_num()));
         }
     }
 
@@ -224,6 +317,25 @@ impl Btf_Node {
     pub fn receivePrepare(&mut self, msg:Bft_Prepare_Message, mut executor:&mut Command_Executor) {
 
         println!("bein receivePrepare");
+
+        // check sign for node
+        let mut sign_msg = msg.clone();
+        let msg_digest = msg.get_msg_digest();
+        sign_msg.set_msg_digest(String::new());
+        let msg_node_id = sign_msg.get_node_id();
+        let pub_key_result = self.get_node_pub_key(&msg_node_id);
+
+        if pub_key_result.is_none() {
+            println!("can not found  node id for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        let signMsgStr = json::encode(&sign_msg).unwrap();
+        if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
+            println!("prepare msg sign not pass for {}", sign_msg.get_node_id());
+            return;
+        }
+
         if msg.get_view_num() != self.view_num {
             println!("receivePrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
             return;
@@ -269,8 +381,11 @@ impl Btf_Node {
         if has_commit && self.msg_cache.contains_key(&msg.get_sequence_num()) {
 
             // new commit msg and broadcast the msg _view_num:u32, _sequence_num:u32, _digest:HashValue, _node_id:u32
-            let commit_msg:Bft_Commit_Message = Bft_Commit_Message::new(self.view_num, seq_num.clone(), self.get_node_base().public_key.as_str(), self.get_node_base().node_id);
+            let mut commit_msg:Bft_Commit_Message = Bft_Commit_Message::new(self.view_num, seq_num.clone(), self.get_node_base().node_id);
+            let mut payload = json::encode(&commit_msg).unwrap();
 
+            let sign = self.signtor.sign_string(payload.as_str());
+            commit_msg.set_msg_digest(sign);
 
             println!("begin to commit {}", msg.get_sequence_num());
             // put msg to log file
@@ -293,14 +408,19 @@ impl Btf_Node {
                 logs_str.push_str(receive_msg.get_payload());
                 executor.savelog(logs_str.as_str());
 
+                executor.command_execute(receive_msg.get_payload());
                 // do command
-                let payload = json::encode(&commit_msg).unwrap();
+                let mut payload = json::encode(&commit_msg).unwrap();
                 receive_msg.set_status(3);
 
-                let sourcePayLoad = receive_msg.get_payload();
+                let sign = receive_msg.signMd5();
+                self.msg_sign_cache.remove(&sign.to_string());
+
+                payload = json::encode(&commit_msg).unwrap();
                 println!("commit msg {}", payload);
                 // broadcast the msg to other
                 self.broadcastMsg(payload, "commit");
+
             }
 
 
@@ -326,6 +446,24 @@ impl Btf_Node {
     }
 
     pub fn receiveCommit(& mut self, msg:Bft_Commit_Message) {
+
+        // check sign for node
+        let mut sign_msg = msg.clone();
+        let msg_digest = msg.get_msg_digest();
+        sign_msg.set_msg_digest(String::new());
+        let msg_node_id = sign_msg.get_node_id();
+        let pub_key_result = self.get_node_pub_key(&msg_node_id);
+
+        if pub_key_result.is_none() {
+            println!("can not found  node id for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        let signMsgStr = json::encode(&sign_msg).unwrap();
+        if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
+            println!("commit msg sign not pass for {}", sign_msg.get_node_id());
+            return;
+        }
 
         let mut source_msg_option:Option<Bft_Message> = None;
         if self.msg_cache.contains_key(& msg.get_sequence_num()) {
@@ -405,9 +543,11 @@ impl Btf_Node {
         let mut simple_vec:Vec<Btf_Node_Simple> = Vec::new();
         let mut _view_num:u64 = 0;
         let mut _node_id:u64 = 1;
+
+        let signtor:Bft_Signtor = Bft_Signtor::new();
         if _primary_address.len() > 0 {
             // the bft network primary not null, is not the first node,send init msg to
-            let regist_msg = Bft_Regist_Msg::new(_ip, _port, "pubKey" );
+            let regist_msg = Bft_Regist_Msg::new(_ip, _port,  signtor.get_public_key().as_str());
             let payload = json::encode(&regist_msg).unwrap();
 
             let send_result = Btf_Node::sendToPrimaryMsg(payload,"regist", _primary_address,_primary_port);
@@ -429,7 +569,7 @@ impl Btf_Node {
                 }
             }
 
-            node_isntance = Btf_Node::new(_view_num, simple_vec, _ip, _port,_node_id, false);
+            node_isntance = Btf_Node::new_with_signtor(_view_num, simple_vec, _ip, _port,_node_id, false, signtor);
 
 
         } else {
@@ -442,26 +582,168 @@ impl Btf_Node {
             node_isntance = Btf_Node::new(view_num, node_list, ip, port,node_id, true);
 
         }
-
+        node_isntance.set_status("normal");
         return node_isntance;
     }
 
-    pub fn handler_expire(&mut self, seq_num:u64) -> Option<Bft_View_Change_Message> {
+    pub fn handler_expire(&mut self, msg_sign:&str) {
 
-        if !self.msg_cache.contains_key(&seq_num) {
-            return Option::None;
+        if !self.msg_sign_cache.contains(&msg_sign.to_string()) {
+            return;
         }
 
-        let mut receive_msg = self.msg_cache.get_mut(&seq_num).unwrap();
-        if receive_msg.get_status() != 1 {
-            return Option::None;
+        let new_view_num = self.view_num.clone()+1;
+        let mut view_change_msg = Bft_View_Change_Message::new(new_view_num, self.seq_num.clone(), 0,  self.get_node_base().get_node_id());
+        let mut payload = json::encode(&view_change_msg).unwrap();
+
+        let sign = self.signtor.sign_string(payload.as_str());
+        view_change_msg.set_msg_digest(sign);
+
+        payload = json::encode(&view_change_msg).unwrap();
+        if self.viewchange_cache.contains_key(&new_view_num) {
+            let mut viewchange_cache = self.viewchange_cache.get_mut(&new_view_num).unwrap();
+            viewchange_cache.push(view_change_msg);
+        } else {
+            let mut viewchange_cache = Vec::new();
+            viewchange_cache.push(view_change_msg);
+            self.viewchange_cache.insert(new_view_num, viewchange_cache);
         }
 
-        let view_change_msg = Bft_View_Change_Message::new(self.view_num.clone(), seq_num, 0, "signed", self.get_node_base().get_node_id());
-        let payload = json::encode(&view_change_msg).unwrap();
+        println!("begin view change ");
+        self.set_status("view_change");
+
         self.broadcastMsg(payload, "viewchange");
-        return Some(view_change_msg);
 
+    }
+
+    pub fn receiveViewChange(& mut self, msg:Bft_View_Change_Message) {
+
+        let new_view_num = msg.get_view_num();
+        let check_point_num = msg.get_check_point_num();
+        let seq_num:u64 = 1;
+        println!("begin view change {}, {}, {}", new_view_num, self.view_num, self.is_primary);
+
+        // check sign for node
+        let mut sign_msg = msg.clone();
+        let msg_digest = msg.get_msg_digest();
+        sign_msg.set_msg_digest(String::new());
+        let msg_node_id = sign_msg.get_node_id();
+        let pub_key_result = self.get_node_pub_key(&msg_node_id);
+
+        if pub_key_result.is_none() {
+            println!("can not found  node id for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        let signMsgStr = json::encode(&sign_msg).unwrap();
+        if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
+            println!("view change msg sign not pass for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        if self.viewchange_cache.contains_key(&new_view_num) {
+            let mut viewchange_cache = self.viewchange_cache.get_mut(&new_view_num).unwrap();
+            viewchange_cache.push(msg);
+        } else {
+            let mut viewchange_cache = Vec::new();
+            viewchange_cache.push(msg);
+            self.viewchange_cache.insert(new_view_num.clone(), viewchange_cache);
+        }
+
+        let viewchange_cache = self.viewchange_cache.get(&new_view_num).unwrap();
+
+        let min_pass_count = self.node_list.len()*2/3 + 1;
+        if viewchange_cache.len() >= min_pass_count {
+
+            // change the view num
+
+            let new_view_num_unsize = new_view_num.clone() as usize;
+            let new_primary_id = new_view_num_unsize%self.node_list.len();
+
+            if self.get_node_base().node_id == (new_primary_id as u64) {
+                self.is_primary = true;
+            } else {
+                self.is_primary = false;
+            }
+
+            // is new primary broad case view_change comfirm msg, resend the prePrepare msg
+            if self.is_primary {
+                println!("new primary {}", self.get_node_base().node_id);
+                self.view_num = new_view_num;
+                // broadcase the new view msg
+
+                let mut new_view_msg = Bft_New_View_Message::new(self.view_num.clone(), seq_num, 0,  self.get_node_base().get_node_id());
+
+                // do all prepare for all sequence num biger than new view
+                for (key, val) in self.msg_cache.iter() {
+                    if key <= &check_point_num || val.get_status()==3 {
+                        continue;
+                    }
+
+                    let new_seq_num = self.seq_num +1;
+
+                    let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(self.view_num.clone(), self.get_node_base().get_node_id(), new_seq_num.clone(), val.clone());
+                    self.seq_num = new_seq_num;
+                    new_view_msg.add_prePrepare(prePrepareMsg);
+                }
+
+                let mut payload = json::encode(&new_view_msg).unwrap();
+
+                let sign = self.signtor.sign_string(payload.as_str());
+                new_view_msg.set_msg_digest(sign);
+
+                payload = json::encode(&new_view_msg).unwrap();
+
+                self.set_status("normal");
+                self.broadcastMsg(payload, "newview");
+
+            }
+
+        }
+
+
+    }
+
+    pub fn receiveNewView(&mut self, msg:Bft_New_View_Message) {
+
+        let new_view_num = msg.get_view_num();
+        println!("begin new view {}, {}, {}", new_view_num, self.view_num, self.is_primary);
+
+        // check sign for node
+        let mut sign_msg = msg.clone();
+        let msg_digest = msg.get_msg_digest();
+        sign_msg.set_msg_digest(String::new());
+        let msg_node_id = sign_msg.get_node_id();
+        let pub_key_result = self.get_node_pub_key(&msg_node_id);
+
+        if pub_key_result.is_none() {
+            println!("can not found  node id for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        let signMsgStr = json::encode(&sign_msg).unwrap();
+        if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
+            println!("new view msg sign not pass for {}", sign_msg.get_node_id());
+            return;
+        }
+
+        if self.view_num == new_view_num {
+            return;
+        }
+
+        if self.is_primary {
+            self.is_primary = false;
+            self.view_num = new_view_num;
+        } else {
+            self.view_num = new_view_num;
+        }
+
+        self.set_status("normal");
+        println!("end view change to new view");
+
+        for prePreMsg in msg.get_prePrepare() {
+            self.doPrepare(prePreMsg.clone());
+        }
     }
 
     /// send message to all other node
@@ -545,6 +827,32 @@ impl Btf_Node {
         }
         println!("have a new node {}", new_node.node_id);
         self.node_list.push(new_node);
+    }
+
+    pub fn save_checkpoin(&mut self, mut executor:&mut Command_Executor) {
+
+        let check_point_num = self.check_point_num + 1;
+
+        // save the key value the check file
+        let result = executor.save_check_point(&check_point_num);
+
+        if result.is_none() {
+            println!("make new check point fail");
+            return;
+        }
+
+        // remove all finish message
+        let mut key_delete:Vec<&u64> = Vec::new();
+        for (key, value) in self.msg_cache.iter() {
+            if value.get_status() == 3 {
+                self.prepare_cache.remove(key);
+                self.commit_cache.remove(key);
+                key_delete.push(key);
+            }
+        }
+
+        self.check_point_num = check_point_num;
+        println!("make new check point success");
     }
 
 

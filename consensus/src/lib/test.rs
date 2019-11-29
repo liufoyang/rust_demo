@@ -42,7 +42,7 @@ fn receiveClientMsg() {
 fn doPrepare() {
     let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
     let clientMsg = Bft_Message::new("hello world", "bft_client0001");
-    let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(1, 1, clientMsg);
+    let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(1, 1, 1, clientMsg);
     let payload_result = json::encode(&prePrepareMsg);
     if payload_result.is_ok() {
         println!("payload {}", payload_result.unwrap());
@@ -56,7 +56,7 @@ fn doPrepare() {
 fn receivePrepare() {
     println!("begin {}", "receivePrepare");
     let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
-    let prepareMsg:Bft_Prepare_Message = Bft_Prepare_Message::new(1, 1, "sign", 11);
+    let prepareMsg:Bft_Prepare_Message = Bft_Prepare_Message::new(1, 1, 11);
     let payload_result = json::encode(&prepareMsg);
     if payload_result.is_ok() {
         println!("payload {}", payload_result.unwrap());
@@ -70,7 +70,7 @@ fn receivePrepare() {
 #[test]
 fn receiveCommit() {
     let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
-    let commit_msg:Bft_Commit_Message = Bft_Commit_Message::new(1, 1, "public", 11);
+    let commit_msg:Bft_Commit_Message = Bft_Commit_Message::new(1, 1, 11);
     let payload_result = json::encode(&commit_msg);
     if payload_result.is_ok() {
         println!("payload {}", payload_result.unwrap());

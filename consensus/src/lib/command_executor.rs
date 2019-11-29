@@ -9,6 +9,7 @@ use std::result::Result;
 use super::threadpool::ThreadPool;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
+use std::collections::HashMap;
 //use std::convert::From::from;
 
 ///只是做一个直接写log，写businessfile的保存命令结果。
@@ -17,7 +18,9 @@ pub struct Command_Executor {
     threadpools:ThreadPool,
     logfiles:Vec<File>,
     busifiles:Vec<File>,
-    size:usize
+    datafileNames:Vec<String>,
+    size:usize,
+    valueMap:HashMap<String, String>,
 }
 
 impl Command_Executor {
@@ -25,9 +28,16 @@ impl Command_Executor {
         //let mut pools_vec = Vec::with_capacity(_size);
         let mut logfile_vec = Vec::with_capacity(_size);
         let mut busi_vec = Vec::with_capacity(_size);
+        let mut data_vec = Vec::with_capacity(2);
 
         let logFileName = "bft_log_record.log";
         let recordFileName = "bft_business_record.log";
+        let checkpointName0 = "0bft_checkpoint_record.log";
+        let checkpointName1 = "1bft_checkpoint_record.log";
+
+        data_vec.push(checkpointName0.to_string());
+        data_vec.push(checkpointName1.to_string());
+
         let pool = ThreadPool::new(_size);
         for i in 0.._size {
             let index = i.to_string();
@@ -69,7 +79,9 @@ impl Command_Executor {
             threadpools:pool,
             logfiles:logfile_vec,
             busifiles:busi_vec,
-            size:_size
+            datafileNames:data_vec,
+            size:_size,
+            valueMap:HashMap::new(),
         };
 
         return executor;
@@ -88,7 +100,6 @@ impl Command_Executor {
         let siez_str = self.size;
         let index = hashValue%self.size;
         let mut logfile = self.logfiles.get_mut(index).unwrap();
-        let mut busifile = self.busifiles.get_mut(index).unwrap();
 
         let command = v[0].clone();
 
@@ -102,15 +113,96 @@ impl Command_Executor {
         logfile.flush();
         println!("write the log file {}", s);
 
-//        let mut comm = String::from(key);
-//        comm.push_str(":");
-//        comm.push_str(value);
-//        comm.push_str("\n");
-//        let mut  buf = comm.as_ref();
-//        busifile.write(buf);
-//        busifile.flush();
-//        println!("write the business file {}", comm);
 
+    }
+
+    /// the command for key value, 3 command put key = value, delete key, get key
+    /// key is path split by /,  value is string max length 1024;
+    pub fn command_execute(&mut self,command: &str) -> Option<String> {
+
+        let mut result:Option<String> = Option::None;
+
+        let mut commandKey = "";
+
+        if command.starts_with("put") {
+            commandKey = "put";
+        }else if command.starts_with("delete") {
+            commandKey = "delete";
+        }else if command.starts_with("get") {
+            commandKey = "get";
+        } else {
+            println!("not valid command {}", command);
+            return result;
+        }
+
+        let mut keyValueStr = command.replace(commandKey, "");
+
+        if !keyValueStr.contains("=") {
+            println!("not valid command {}", command);
+            return result;
+        }
+        let playloads:Vec<&str> = keyValueStr.split('=').collect();;
+
+        let key = playloads[0].trim();
+        let value = playloads[1].trim();
+
+        let mut busifile = self.busifiles.get_mut(0).unwrap();
+        let mut out = String::from(command);
+        out.push_str("\n");
+        let mut  buf = out.as_ref();
+        busifile.write(buf);
+        busifile.flush();
+        println!("write the business file {}", command);
+
+        if commandKey == "put" {
+            self.valueMap.insert(key.to_string(), value.to_string());
+        } else if commandKey == "delete" {
+            result = self.valueMap.remove(key.clone());
+        }
+
+        let keyStr = key.to_string();
+        if self.valueMap.contains_key(&keyStr) {
+            let value_str = self.valueMap.get(&keyStr).unwrap();
+            result = Some(value_str.to_string());
+        }
+
+        return result;
+
+    }
+
+    pub fn save_check_point(&mut self,check_point_num: &u64) -> Option<String> {
+
+        let check_point_file_index = ((*check_point_num)%2) as usize;
+        let fileName = self.datafileNames.get(check_point_file_index).unwrap();
+
+        let file_result = File::create(fileName.as_str());
+        if !file_result.is_ok() {
+            return None;
+        }
+
+        let mut file = file_result.unwrap();
+        for (key, value) in self.valueMap.iter() {
+            let mut line = String::from(key.as_str());
+            line.push_str("=");
+            line.push_str(value.as_str());
+            line.push_str("\n");
+
+            file.write_all(line.as_str().as_bytes());
+        }
+
+        file.flush();
+
+        // save the command
+        let mut add_check_point_line = String::from("checkpoint ");
+        add_check_point_line.push_str(check_point_file_index.to_string().as_str());
+        add_check_point_line.push_str("\n");
+
+        let mut busifile = self.busifiles.get_mut(0).unwrap();
+        let mut buf = add_check_point_line.as_str().as_bytes();
+        busifile.write(buf);
+        busifile.flush();
+
+        return Some("add check point".to_string());
     }
 }
 
