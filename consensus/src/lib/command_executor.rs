@@ -16,101 +16,54 @@ use std::collections::HashMap;
 //
 pub struct Command_Executor {
     threadpools:ThreadPool,
-    logfiles:Vec<File>,
-    busifiles:Vec<File>,
-    datafileNames:Vec<String>,
+    msglogfiles:File,
+    busifiles:File,
+    datafileName:String,
     size:usize,
     valueMap:HashMap<String, String>,
 }
 
 impl Command_Executor {
-    pub fn new(_size: usize) ->Command_Executor {
+    pub fn new(msglogfile_name:&str, datafile_name:&str, busifile_name:&str) ->Command_Executor {
         //let mut pools_vec = Vec::with_capacity(_size);
-        let mut logfile_vec = Vec::with_capacity(_size);
-        let mut busi_vec = Vec::with_capacity(_size);
-        let mut data_vec = Vec::with_capacity(2);
-
-        let logFileName = "bft_log_record.log";
-        let recordFileName = "bft_business_record.log";
-        let checkpointName0 = "0bft_checkpoint_record.log";
-        let checkpointName1 = "1bft_checkpoint_record.log";
-
-        data_vec.push(checkpointName0.to_string());
-        data_vec.push(checkpointName1.to_string());
-
-        let pool = ThreadPool::new(_size);
-        for i in 0.._size {
-            let index = i.to_string();
-
-            let mut logfile_name = String::from(index.as_str());
-            logfile_name.push_str(logFileName);
-
-            let mut logfile_result = OpenOptions::new().append(true).open(logfile_name.clone());
-            match logfile_result {
-                Ok(logfile) => {
-                    logfile_vec.push(logfile);
-                },
-                Err(err) => {
-                    let mut logfile = File::create(logfile_name).unwrap();
-                    logfile_vec.push(logfile);
-
-                }
-            }
-
-
-            let mut recordfile_name = String::from(index.as_str());
-            recordfile_name.push_str(recordFileName);
-
-            let mut logfile_result = OpenOptions::new().append(true).open(recordfile_name.clone());
-            match logfile_result {
-                Ok(busifile) => {
-                    busi_vec.push(busifile);
-                },
-                Err(err) => {
-                    let mut busifile = File::create(recordfile_name).unwrap();
-                    busi_vec.push(busifile);
-
-                }
-            }
-
+        let mut logfile_result = OpenOptions::new().append(true).open(msglogfile_name.to_string());
+        if logfile_result.is_err() {
+            logfile_result = File::create(msglogfile_name.to_string());
         }
 
+        let logfile: File = logfile_result.unwrap();
+
+        let mut busifile_result = OpenOptions::new().append(true).open(busifile_name.to_string());
+        if busifile_result.is_err() {
+            busifile_result  = File::create(busifile_name.to_string());
+        }
+        let busifile:File = busifile_result.unwrap();
+
         let executor =  Command_Executor {
-            threadpools:pool,
-            logfiles:logfile_vec,
-            busifiles:busi_vec,
-            datafileNames:data_vec,
-            size:_size,
+            threadpools:ThreadPool::new(1),
+            msglogfiles:logfile,
+            busifiles:busifile,
+            datafileName:datafile_name.to_string(),
+            size:1,
             valueMap:HashMap::new(),
         };
 
         return executor;
     }
 
-    // payload format command key value
+    // record the msg log 记录消息日志
     pub fn savelog(&mut self,payload: &str) {
         let v: Vec<&str> = payload.split(' ').collect();
 
 
-        // 计算key的hash取模匹配文件index值。
-        let mut hasher = DefaultHasher::new();
-        let key = v[1];
-        hasher.write(key.as_ref());
-        let hashValue = hasher.finish() as usize;
-        let siez_str = self.size;
-        let index = hashValue%self.size;
-        let mut logfile = self.logfiles.get_mut(index).unwrap();
-
-        let command = v[0].clone();
-
-        let value:&str = v[2].clone();
+        // TODO 计算key的hash取模匹配文件index值, 分组消息日志
 
         let mut s = String::from(payload);
         s.push_str("\n");
         let mut  buf = s.as_ref();
+        self.msglogfiles.write(buf);
+        self.msglogfiles.flush();
 
-        logfile.write(buf);
-        logfile.flush();
         println!("write the log file {}", s);
 
 
@@ -146,12 +99,11 @@ impl Command_Executor {
         let key = playloads[0].trim();
         let value = playloads[1].trim();
 
-        let mut busifile = self.busifiles.get_mut(0).unwrap();
         let mut out = String::from(command);
         out.push_str("\n");
         let mut  buf = out.as_ref();
-        busifile.write(buf);
-        busifile.flush();
+        self.busifiles.write(buf);
+        self.busifiles.flush();
         println!("write the business file {}", command);
 
         if commandKey == "put" {
@@ -173,7 +125,9 @@ impl Command_Executor {
     pub fn save_check_point(&mut self,check_point_num: &u64) -> Option<String> {
 
         let check_point_file_index = ((*check_point_num)%2) as usize;
-        let fileName = self.datafileNames.get(check_point_file_index).unwrap();
+        let mut fileName = String::from(self.datafileName.as_str());
+        fileName.push_str(check_point_file_index.to_string().as_str());
+        fileName.push_str(".log");
 
         let file_result = File::create(fileName.as_str());
         if !file_result.is_ok() {
@@ -197,10 +151,9 @@ impl Command_Executor {
         add_check_point_line.push_str(check_point_file_index.to_string().as_str());
         add_check_point_line.push_str("\n");
 
-        let mut busifile = self.busifiles.get_mut(0).unwrap();
         let mut buf = add_check_point_line.as_str().as_bytes();
-        busifile.write(buf);
-        busifile.flush();
+        self.busifiles.write(buf);
+        self.busifiles.flush();
 
         return Some("add check point".to_string());
     }

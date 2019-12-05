@@ -22,6 +22,8 @@ use crypto::md5;
 use super::bft_signtor::Bft_Signtor;
 extern crate rustc_hex;
 use rustc_hex::{FromHex,ToHex};
+use flexi_logger::{Logger, opt_format};
+use log::*;
 
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -63,24 +65,24 @@ pub struct Btf_Node{
     prepare_cache: HashMap<u64, Vec<Bft_Prepare_Message>>,
     commit_cache: HashMap<u64, Vec<Bft_Commit_Message>>,
     viewchange_cache: HashMap<u64, Vec<Bft_View_Change_Message>>,
-    executor: Command_Executor,
     signtor:Bft_Signtor,
     check_point_num: u64,
+    communication:Default_TCP_Communication,
 }
 
 impl Btf_Node {
 
-    fn new(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool) -> Btf_Node{
+    fn new(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool, _communication:Default_TCP_Communication) -> Btf_Node{
 
         let signer = Bft_Signtor::new();
-        return Btf_Node::new_with_signtor(_view_num,_node_list, _ip, _port, _node_id, isPrimary, signer);
+        return Btf_Node::new_with_signtor(_view_num,_node_list, _ip, _port, _node_id, isPrimary, signer, _communication);
     }
 
     pub fn set_status(&mut self, new_status:&str) {
         self.status = new_status.to_string();
     }
 
-    pub fn new_with_signtor(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool, _signtor:Bft_Signtor) -> Btf_Node{
+    pub fn new_with_signtor(_view_num:u64, mut _node_list:Vec<Btf_Node_Simple>, _ip:&str, _port:&str,_node_id:u64, isPrimary:bool, _signtor:Bft_Signtor, _communication:Default_TCP_Communication) -> Btf_Node{
         let bft_simple = Btf_Node_Simple{
             node_id:_node_id,
             address:_ip.to_string(),
@@ -91,7 +93,6 @@ impl Btf_Node {
         // put self to the node list
         _node_list.push(bft_simple.clone());
 
-        let mut command_executor = Command_Executor::new(2);
         let node = Btf_Node{
             base:bft_simple,
             status:"new".to_string(),
@@ -104,9 +105,9 @@ impl Btf_Node {
             prepare_cache:HashMap::new(),
             commit_cache:HashMap::new(),
             viewchange_cache:HashMap::new(),
-            executor:command_executor,
             signtor:_signtor,
             check_point_num: 0,
+            communication:_communication
 
         };
 
@@ -132,7 +133,7 @@ impl Btf_Node {
     pub fn receiveClientMsg(& mut self, msg:Bft_Message, executor:&mut Command_Executor) -> String {
 
         let view_num_temp:usize = 10;
-        println!("begin process for");
+        info!("begin process for");
 
         let msg_md5 = msg.signMd5();
 
@@ -159,7 +160,7 @@ impl Btf_Node {
             //self.executor.execute(payload.as_str());
             self.broadcastMsg(payload, "prePrepare");
 
-            println!("process for primary");
+            info!("process for primary");
             self.doPrepare(prePrepareMsg);
 
             self.seq_num = num;
@@ -191,7 +192,7 @@ impl Btf_Node {
     }
     pub fn doPrepare(& mut self,  msg:Bft_PrePrepare_Message) -> Option<(u64, u64)>{
 
-        println!("begin doPrepare for");
+        info!("begin doPrepare for");
 
         // check sign for node
         let mut sign_msg = msg.clone();
@@ -201,19 +202,19 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            println!("can not found  node id for {}", sign_msg.get_node_id());
+            error!("can not found  node id for {}", sign_msg.get_node_id());
             return Option::None;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            println!("msg sign not pass for {}", sign_msg.get_node_id());
+            warn!("msg sign not pass for {}", sign_msg.get_node_id());
             return Option::None;
         }
 
         // check is the primary message, check the digest by primary pub key;
         if msg.get_view_num() != self.view_num {
-            println!("doPrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
+            warn!("doPrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
             return Some((msg.get_view_num(), msg.get_sequence_num()));
         }
 
@@ -225,7 +226,7 @@ impl Btf_Node {
         // check if have before,if not put msg to msg_cache
         //let mut source_msg_option:Option<&Bft_Message> = Option::None;
         if self.msg_cache.contains_key(& msg.get_sequence_num()) {
-            println!("doPrepare have recevie the sequence num ");
+            info!("doPrepare have recevie the sequence num ");
             // have receive this msg num before, check if the same msg
             let receive_msg = self.msg_cache.get(& sequence_num).unwrap();
             if receive_msg.get_id() == msg.get_client_msg().get_id(){
@@ -280,7 +281,7 @@ impl Btf_Node {
             return Some((msg.get_view_num(), msg.get_sequence_num()));
 
         } else {
-            println!("doPrepare new  sequence num msg");
+            info!("doPrepare new  sequence num msg");
             let mut client_msg = msg.get_client_msg().clone();
             client_msg.set_status(2);
             self.msg_cache.insert(msg.get_sequence_num(),  client_msg);
@@ -316,7 +317,7 @@ impl Btf_Node {
     ///
     pub fn receivePrepare(&mut self, msg:Bft_Prepare_Message, mut executor:&mut Command_Executor) {
 
-        println!("bein receivePrepare");
+        info!("bein receivePrepare");
 
         // check sign for node
         let mut sign_msg = msg.clone();
@@ -326,18 +327,18 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            println!("can not found  node id for {}", sign_msg.get_node_id());
+            info!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            println!("prepare msg sign not pass for {}", sign_msg.get_node_id());
+            info!("prepare msg sign not pass for {}", sign_msg.get_node_id());
             return;
         }
 
         if msg.get_view_num() != self.view_num {
-            println!("receivePrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
+            info!("receivePrepare view num not same {}, {}", msg.get_view_num(), self.view_num);
             return;
         }
 
@@ -352,7 +353,7 @@ impl Btf_Node {
 
         // not know node, not process its prepare,
         if node_option.is_none() {
-            println!("receivePrepare no illge node");
+            info!("receivePrepare no illge node");
             return;
         }
 
@@ -387,7 +388,7 @@ impl Btf_Node {
             let sign = self.signtor.sign_string(payload.as_str());
             commit_msg.set_msg_digest(sign);
 
-            println!("begin to commit {}", msg.get_sequence_num());
+            info!("begin to commit {}", msg.get_sequence_num());
             // put msg to log file
             if self.commit_cache.contains_key(&seq_num) {
                 let list = self.commit_cache.get_mut(&seq_num).unwrap();
@@ -417,7 +418,7 @@ impl Btf_Node {
                 self.msg_sign_cache.remove(&sign.to_string());
 
                 payload = json::encode(&commit_msg).unwrap();
-                println!("commit msg {}", payload);
+                info!("commit msg {}", payload);
                 // broadcast the msg to other
                 self.broadcastMsg(payload, "commit");
 
@@ -441,7 +442,7 @@ impl Btf_Node {
         let prepare_list = prepare_msg_list_option.unwrap();
 
         // have enough prepare msg
-        println!("enough prepare {} {}", prepare_list.len(), min_pass_count);
+        info!("enough prepare {} {}", prepare_list.len(), min_pass_count);
         return prepare_list.len()>= min_pass_count;
     }
 
@@ -455,13 +456,13 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            println!("can not found  node id for {}", sign_msg.get_node_id());
+            info!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            println!("commit msg sign not pass for {}", sign_msg.get_node_id());
+            info!("commit msg sign not pass for {}", sign_msg.get_node_id());
             return;
         }
 
@@ -511,7 +512,7 @@ impl Btf_Node {
 
     }
 
-    pub fn doReplay(&self, _sequence_num:u64) {
+    pub fn doReplay(&mut self, _sequence_num:u64) {
         if !self.commit_cache.contains_key(&_sequence_num) {
             return;
         }
@@ -526,7 +527,7 @@ impl Btf_Node {
         ///  commit mes count > f+1 then pass and view have changed commit at this node view;
         let min_pass_count = self.node_list.len()/3 + 1;
         let commit_msg_list = self.commit_cache.get(&_sequence_num).unwrap();
-        println!("enough commit {} {}", commit_msg_list.len(), min_pass_count);
+        info!("enough commit {} {}", commit_msg_list.len(), min_pass_count);
         if commit_msg_list.len()>= min_pass_count {
             // new replay msg and send to client _view_num:u32, _payload: &str, _node_id:&str, _source_msg:Bft_Message
             let replay_msg:Bft_Replay = Bft_Replay::new(self.view_num, "succes process", self.get_node_base().node_id.clone(), msg.clone());
@@ -536,7 +537,7 @@ impl Btf_Node {
     }
 
     /// start new node, connect the bft network
-    pub fn start_node(_primary_address:&str, _primary_port: &str, _ip:&str, _port:&str) -> Btf_Node{
+    pub fn start_node(_primary_address:&str, _primary_port: &str, _ip:&str, _port:&str, mut _communication:Default_TCP_Communication) -> Btf_Node{
 
         // send request for primary
         let mut node_isntance:Btf_Node;
@@ -550,7 +551,7 @@ impl Btf_Node {
             let regist_msg = Bft_Regist_Msg::new(_ip, _port,  signtor.get_public_key().as_str());
             let payload = json::encode(&regist_msg).unwrap();
 
-            let send_result = Btf_Node::sendToPrimaryMsg(payload,"regist", _primary_address,_primary_port);
+            let send_result = Btf_Node::sendToPrimaryMsg(payload,"regist", _primary_address,_primary_port, &mut _communication);
             if send_result.is_ok() {
                 let mut result_str = send_result.unwrap();
                 //result_str = "{\"node_list\":[{\"node_id\":1,\"address\":\"10.3.209.223\",\"port\":\"8780\",\"public_key\":\"\"}],\"view_num\":1,\"check_point_num\":0,\"node_id\":2}\n".to_string();//result_str.trim().to_string();
@@ -565,11 +566,11 @@ impl Btf_Node {
                     _node_id = reply_msg.get_node_id();
 
                 } else {
-                    println!("regist reply msg error {} {}", node_msg_result.err().unwrap(), result_str);
+                    info!("regist reply msg error {} {}", node_msg_result.err().unwrap(), result_str);
                 }
             }
 
-            node_isntance = Btf_Node::new_with_signtor(_view_num, simple_vec, _ip, _port,_node_id, false, signtor);
+            node_isntance = Btf_Node::new_with_signtor(_view_num, simple_vec, _ip, _port,_node_id, false, signtor, _communication);
 
 
         } else {
@@ -579,10 +580,12 @@ impl Btf_Node {
             let node_list = Vec::new();
             let ip = _ip;
             let node_id = 1;
-            node_isntance = Btf_Node::new(view_num, node_list, ip, port,node_id, true);
+            node_isntance = Btf_Node::new(view_num, node_list, ip, port,node_id, true, _communication);
 
         }
         node_isntance.set_status("normal");
+
+        info!("node init finish {}", node_isntance.is_primary);
         return node_isntance;
     }
 
@@ -609,7 +612,7 @@ impl Btf_Node {
             self.viewchange_cache.insert(new_view_num, viewchange_cache);
         }
 
-        println!("begin view change ");
+        info!("begin view change ");
         self.set_status("view_change");
 
         self.broadcastMsg(payload, "viewchange");
@@ -621,7 +624,7 @@ impl Btf_Node {
         let new_view_num = msg.get_view_num();
         let check_point_num = msg.get_check_point_num();
         let seq_num:u64 = 1;
-        println!("begin view change {}, {}, {}", new_view_num, self.view_num, self.is_primary);
+        info!("begin view change {}, {}, {}", new_view_num, self.view_num, self.is_primary);
 
         // check sign for node
         let mut sign_msg = msg.clone();
@@ -631,13 +634,13 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            println!("can not found  node id for {}", sign_msg.get_node_id());
+            info!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            println!("view change msg sign not pass for {}", sign_msg.get_node_id());
+            info!("view change msg sign not pass for {}", sign_msg.get_node_id());
             return;
         }
 
@@ -668,7 +671,7 @@ impl Btf_Node {
 
             // is new primary broad case view_change comfirm msg, resend the prePrepare msg
             if self.is_primary {
-                println!("new primary {}", self.get_node_base().node_id);
+                info!("new primary {}", self.get_node_base().node_id);
                 self.view_num = new_view_num;
                 // broadcase the new view msg
 
@@ -707,7 +710,7 @@ impl Btf_Node {
     pub fn receiveNewView(&mut self, msg:Bft_New_View_Message) {
 
         let new_view_num = msg.get_view_num();
-        println!("begin new view {}, {}, {}", new_view_num, self.view_num, self.is_primary);
+        info!("begin new view {}, {}, {}", new_view_num, self.view_num, self.is_primary);
 
         // check sign for node
         let mut sign_msg = msg.clone();
@@ -717,13 +720,13 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            println!("can not found  node id for {}", sign_msg.get_node_id());
+            info!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            println!("new view msg sign not pass for {}", sign_msg.get_node_id());
+            info!("new view msg sign not pass for {}", sign_msg.get_node_id());
             return;
         }
 
@@ -739,7 +742,7 @@ impl Btf_Node {
         }
 
         self.set_status("normal");
-        println!("end view change to new view");
+        info!("end view change to new view");
 
         for prePreMsg in msg.get_prePrepare() {
             self.doPrepare(prePreMsg.clone());
@@ -748,9 +751,9 @@ impl Btf_Node {
 
     /// send message to all other node
     ///
-    fn broadcastMsg (&self, data:String , command:&str) {
+    fn broadcastMsg (&mut self, data:String , command:&str) {
 
-        println!("bengin to broadcase {}", self.node_list.len());
+        info!("bengin to broadcase {}", self.node_list.len());
         let payload_str = data;
         for node in &(self.node_list) {
 
@@ -759,38 +762,45 @@ impl Btf_Node {
                 continue;
             }
 //            //build BftCommunicationMsg
-            let communication_msg = BftCommunicationMsg{
-                command:command.to_string(),
-                version:"v0.1".to_string(),
-                payload:payload_str.to_string()
-            };
+            let communication_msg = BftCommunicationMsg::new(command, payload_str.as_str());
 
-            Default_TCP_Communication::sendMessage(node.address.as_str(), node.port.as_str(), communication_msg);
-            println!("send to node {}", node.address.as_str());
+            self.communication.sendMessage(node.address.as_str(), node.port.as_str(), communication_msg, true);
+            info!("send to node {}", node.address.as_str());
 
         }
 
 
     }
 
-    fn sendToPrimaryMsg (data:String , command:&str, _primary_addr:&str, _port:&str) ->std::result::Result<String, &'static str>{
+    fn sendToPrimaryMsg (data:String , command:&str, _primary_addr:&str, _port:&str, communication:&mut Default_TCP_Communication) ->std::result::Result<String, &'static str>{
 
-        println!("bengin to broadcase");
+        info!("bengin to broadcase {} {}", _primary_addr, _port);
         let payload_str = data;
-        let communication_msg = BftCommunicationMsg{
-            command:command.to_string(),
-            version:"v0.1".to_string(),
-            payload:payload_str.to_string()
-        };
+        let communication_msg = BftCommunicationMsg::new(command, payload_str.as_str());
 
-        let send_result = Default_TCP_Communication::sendMessageWithReply(_primary_addr, _port, communication_msg);
-        println!("send to primary node {}", command);
+        let send_result = communication.sendMessage(_primary_addr, _port, communication_msg, false);
+        info!("send to primary node {}", command);
 
-        return send_result;
+        if send_result.is_some() {
+            let replay:BftCommunicationMsg = send_result.unwrap();
+            return Ok(replay.payload);
+        } else {
+            return Err("read primary stram error");
+        }
 
     }
 
-    pub fn regist_node(&mut self, msg:Bft_Regist_Msg) -> Bft_Regist_Reply {
+    fn replayToNode(&mut self, command:&str, _addr:&str, _port:&str, data:String, msgId:&str){
+        info!("bengin to broadcase");
+        let payload_str = data;
+        let mut communication_msg = BftCommunicationMsg::new(command, payload_str.as_str());
+        communication_msg.id = msgId.to_string();
+        let send_result = self.communication.sendMessage(_addr, _port, communication_msg, true);
+        info!("replay to node {} {}", _addr, _port);
+
+    }
+
+    pub fn regist_node(&mut self, msg:Bft_Regist_Msg, msgId:&str) {
 
         let mut node_list:Vec<Btf_Node_Simple> = Vec::new();
 
@@ -804,6 +814,9 @@ impl Btf_Node {
         node_id +=1;
         let reply = Bft_Regist_Reply::new(node_list, self.view_num.clone(), 0, node_id.clone());
 
+        let mut payload = json::encode(&reply).unwrap();
+        self.replayToNode("reply", msg.address.as_str(), msg.port.as_str(), payload, msgId);
+
         // push the new slave node to list
         let bft_slave = Btf_Node_Simple{
             node_id:node_id,
@@ -813,11 +826,11 @@ impl Btf_Node {
         };
 
         // broadcase to node list  new regist node
-        let payload = json::encode(&bft_slave).unwrap();
-        self.broadcastMsg(payload, "newnode");
+        payload = json::encode(&bft_slave).unwrap();
 
         self.node_list.push(bft_slave);
-        return reply;
+
+        self.broadcastMsg(payload, "newnode");
     }
 
     pub fn receive_new_node(&mut self, new_node:Btf_Node_Simple) {
@@ -825,7 +838,7 @@ impl Btf_Node {
         if self.is_primary {
             return;
         }
-        println!("have a new node {}", new_node.node_id);
+        info!("have a new node {}", new_node.node_id);
         self.node_list.push(new_node);
     }
 
@@ -837,7 +850,7 @@ impl Btf_Node {
         let result = executor.save_check_point(&check_point_num);
 
         if result.is_none() {
-            println!("make new check point fail");
+            error!("make new check point fail");
             return;
         }
 
@@ -852,7 +865,7 @@ impl Btf_Node {
         }
 
         self.check_point_num = check_point_num;
-        println!("make new check point success");
+        info!("make new check point success");
     }
 
 

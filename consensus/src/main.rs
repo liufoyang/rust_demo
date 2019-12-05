@@ -28,6 +28,11 @@ extern crate rustc_hex;
 use rustc_hex::{FromHex,ToHex};
 extern crate crypto;
 
+extern crate flexi_logger;
+use flexi_logger::{Logger, opt_format};
+extern crate log;
+use log::*;
+
 #[derive(RustcDecodable, RustcEncodable)]
 #[derive(Clone)]
 struct Node_Config {
@@ -36,12 +41,22 @@ struct Node_Config {
     nodeIP: String,
     nodePort: String,
     pubKey: String,
-    privateKey: String
+    privateKey: String,
+    business_file: String,
+    checkpoint_file:String,
+    log_record_file:String,
 }
 
 fn main() {
 
-    let mut config_file_name = "node_config.json";
+    Logger::with_str("info")
+        .log_to_file()
+        .directory("log_files")
+        .format(opt_format)
+        .start()
+        .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
+
+    let mut config_file_name = "./config/node_config.json";
     let mut arguments = Vec::new();
     for argument in env::args() {
         arguments.push(argument);
@@ -49,7 +64,7 @@ fn main() {
 
     if arguments.len() > 1 {
         config_file_name = arguments[1].as_str();
-        println!("config file {}", config_file_name);
+        info!("config file {}", config_file_name);
     }
 
 
@@ -63,19 +78,31 @@ fn main() {
         panic!("config file content error");
     }
 
-    let config:Node_Config = config_result.unwrap();
+    let mut config:Node_Config = config_result.unwrap();
+
+    if config.business_file.len() == 0 {
+        config.business_file = "businessfile.log".to_string();
+    }
+
+    if config.log_record_file.len() == 0 {
+        config.log_record_file = "msg_record_file.log".to_string();
+    }
+
+    if config.checkpoint_file.len() == 0 {
+        config.business_file = "datafile.log".to_string();
+    }
+
+    // start a comnunication and listener network
+    let (communication, receiver) = Default_TCP_Communication::startListen(config.nodeIP.as_str(), config.nodePort.as_str());
 
     // start node
-    let mut node:Btf_Node = Btf_Node::start_node(config.primaryIp.as_str(), config.primaryPort.as_str(), config.nodeIP.as_str(), config.nodePort.as_str());
+    let mut node:Btf_Node = Btf_Node::start_node(config.primaryIp.as_str(), config.primaryPort.as_str(), config.nodeIP.as_str(), config.nodePort.as_str(), communication);
 
     // start a thread to handler msg rount
     let node_mutex: Arc<Mutex<Btf_Node>> = Arc::new(Mutex::new(node));
 
-    let mut executor = Command_Executor::new(2);
+    let mut executor = Command_Executor::new(config.log_record_file.as_str(), config.checkpoint_file.as_str(), config.business_file.as_str());
     let executor_mutex:Arc<Mutex<Command_Executor>> = Arc::new(Mutex::new(executor));
-
-    // start a
-    let receiver = Default_TCP_Communication::startListen(config.nodeIP.as_str(), config.nodePort.as_str());
 
     // a thread check expire for prepare msg
     let (pre_sender, pre_receiver) = channel();
@@ -114,7 +141,7 @@ fn main() {
         });
 
     if !expire_handler.is_ok() {
-        println!("error to start expire thread {:?}", expire_handler.err())
+        error!("error to start expire thread {:?}", expire_handler.err())
     }
 
 
@@ -123,34 +150,36 @@ fn main() {
     let executor_checkpoint = Arc::clone(&executor_mutex);
     let checkpoint_handler = thread::Builder::new().name("checkpoint_process".to_string()).spawn(move||
         {
+            let minu_5 = Duration::from_secs(300);
             while(true) {
 
-                let mut node = mutex_checkpoint.lock().unwrap();
-                let mut executor = executor_checkpoint.lock().unwrap();
-                node.save_checkpoin(&mut executor);
-
-                let minu_5 = Duration::from_secs(300);
                 thread::sleep(minu_5);
 
                 let is_run = is_run_checkpoint.lock().unwrap();
                 if ! *is_run {
                     break;
+                } else {
+                    let mut node = mutex_checkpoint.lock().unwrap();
+                    let mut executor = executor_checkpoint.lock().unwrap();
+                    node.save_checkpoin(&mut executor);
+
                 }
             }
 
         });
 
     if !checkpoint_handler.is_ok() {
-        println!("error to start expire thread {:?}", checkpoint_handler.err())
+        error!("error to start expire thread {:?}", checkpoint_handler.err())
     }
 
     while(true) {
         let msg_result = receiver.recv();
         if msg_result.is_ok() {
 
-            let (mut msg, mut stream) = *(msg_result.unwrap());
+            info!("receiver main msg");
+            let msg = *(msg_result.unwrap());
             if(msg.command.as_str() == "quit") {
-                println!("receive quit command");
+                info!("receive quit command");
                 let is_run_arc = Arc::clone(&running);
                 let mut is_run = is_run_arc.lock().unwrap();
                 *is_run = false;
@@ -167,12 +196,12 @@ fn main() {
                 let mut node = mutex.lock().unwrap();
                 // handler and rount the process
                 if(msg.command.as_str() == "receiveMsg") {
-                    println!("receive client msg {}", msg.payload);
+                    info!("receive client msg {}", msg.payload);
                     let payload = msg.payload.as_str();
                     //let clientMsg_encode:Bft_Message = json::decode(&encode_str).unwrap();
                     let node_msg_result:DecodeResult<Bft_Message> = json::decode(&payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse client msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse client msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
 
@@ -196,13 +225,13 @@ fn main() {
                         let pre_sender = pre_sender_sub.lock().unwrap();
                         pre_sender.send(pre_timeout);
                     }
-                    println!("quit command");
+                    info!("quit command");
 
                 } else if(msg.command.as_str() == "prePrepare") {
-                    println!("receive prePrepare command");
+                    info!("receive prePrepare command");
                     let node_msg_result:DecodeResult<Bft_PrePrepare_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse prePrepare msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse prePrepare msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
                         let result = node.doPrepare(node_msg);
@@ -213,10 +242,10 @@ fn main() {
                     }
 
                 } else if(msg.command.as_str() == "prepare") {
-                    println!("receive prepare command");
+                    info!("receive prepare command");
                     let node_msg_result:DecodeResult<Bft_Prepare_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse client msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse client msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let mut executor = executor_sub.lock().unwrap();
                         let node_msg = node_msg_result.unwrap();
@@ -224,10 +253,10 @@ fn main() {
                     }
 
                 }else if(msg.command.as_str() == "commit") {
-                    println!("receive commit command");
+                    info!("receive commit command");
                     let node_msg_result:DecodeResult<Bft_Commit_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse receiveCommit msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse receiveCommit msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
                         node.receiveCommit(node_msg);
@@ -235,27 +264,21 @@ fn main() {
 
 
                 } else if(msg.command.as_str() == "regist") {
-                    println!("regist command");
+                    info!("regist command");
                     let node_msg_result:DecodeResult<Bft_Regist_Msg> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse regist msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse regist msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
-                        let regist_result = node.regist_node(node_msg);
-
-                        let mut payload = json::encode(&regist_result).unwrap();
-                        payload.push_str("\n");
-                        println!("reply to new regist {}", payload);
-                        stream.write_all(payload.as_bytes());
-                        stream.flush();
+                        node.regist_node(node_msg, msg.id.as_str());
                     }
 
 
                 }else if(msg.command.as_str() == "newnode") {
-                    println!("newnode command");
+                    info!("newnode command");
                     let node_msg_result:DecodeResult<Btf_Node_Simple> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse newnode msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse newnode msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_sample = node_msg_result.unwrap();
                         node.receive_new_node(node_sample);
@@ -263,10 +286,10 @@ fn main() {
 
 
                 }else if(msg.command.as_str() == "viewchange") {
-                    println!("newnode command");
+                    info!("newnode command");
                     let node_msg_result:DecodeResult<Bft_View_Change_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse newnode msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse newnode msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let view_change = node_msg_result.unwrap();
                         node.receiveViewChange(view_change);
@@ -274,10 +297,10 @@ fn main() {
 
 
                 }else if(msg.command.as_str() == "newview") {
-                    println!("newnode command");
+                    info!("newnode command");
                     let node_msg_result:DecodeResult<Bft_New_View_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse newnode msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse newnode msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let new_view_msg = node_msg_result.unwrap();
                         node.receiveNewView(new_view_msg);
@@ -285,12 +308,12 @@ fn main() {
 
 
                 }else if (msg.command.as_str() == "forword"){
-                    println!("receive forword msg {}", msg.payload);
+                    info!("receive forword msg {}", msg.payload);
                     let payload = msg.payload.as_str();
                     //let clientMsg_encode:Bft_Message = json::decode(&encode_str).unwrap();
                     let node_msg_result:DecodeResult<Bft_Message> = json::decode(&payload);
                     if(!node_msg_result.is_ok()) {
-                        println!("parse client msg json error {}", node_msg_result.err().unwrap());
+                        warn!("parse client msg json error {}", node_msg_result.err().unwrap());
                     } else {
                         let node_msg = node_msg_result.unwrap();
 
@@ -316,8 +339,7 @@ fn main() {
                     }
 
                 } else {
-                    println!("receive unknow command");
-                    stream.write("unknow message format".as_bytes());
+                    warn!("receive unknow command");
                 }
 
 

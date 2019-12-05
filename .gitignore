@@ -1,5 +1,7 @@
 /target
+/.idea/**/*.*
 **/*.rs.bk
+**/*.log
 
 /target/debug
 .idea/*.*

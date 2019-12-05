@@ -1,0 +1,10 @@
+{   "primaryIp": "",
+    "primaryPort": "8780",
+    "nodeIP": "10.3.209.223",
+    "nodePort": "8780",
+    "pubKey": "pubkey",
+    "privateKey": "priKey",
+    "business_file": "./data_files/businessfile.log",
+    "checkpoint_file":"./data_files/datafile.log",
+    "log_record_file":"./data_files/msg_record_file.log"
+}
