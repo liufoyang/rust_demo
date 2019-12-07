@@ -13,6 +13,12 @@ serde = "1.0.60"
 serde_json = "1.0.40"
 lazy_static = ""
 futures="0.1.29"
+rustc-serialize = "0.3"
+rand = "0.7"
+rust-crypto = "^0.2"
+rustc-hex = "2.0.1"
+flexi_logger = "0.14"
+log = "0.4"
 
 [dependencies.rocket_contrib]
 version = "0.4.2"

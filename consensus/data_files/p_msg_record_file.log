@@ -1,0 +1,5 @@
+receiveMsg d6aef252e716bb752ecc26f39f7b6a81 {"id":"10001","client_id":"bft_client0001","payload":"put third_key=hello_3","timestamp":100000,"status":0,"md5sign":""}
+receiveMsg d6aef252e716bb752ecc26f39f7b6a81 {"id":"10001","client_id":"bft_client0001","payload":"put third_key=hello_3","timestamp":100000,"status":0,"md5sign":""}
+receiveMsg d6aef252e716bb752ecc26f39f7b6a81 {"id":"10001","client_id":"bft_client0001","payload":"put third_key=hello_3","timestamp":100000,"status":0,"md5sign":""}
+receiveMsg 1c02aa60b0e149b7e90b2318e7e7b9fe {"id":"10001","client_id":"bft_client0001","payload":"put first_key=hello_1","timestamp":100000,"status":0,"md5sign":""}
+commit 1 put first_key=hello_1

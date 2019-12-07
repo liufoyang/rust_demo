@@ -1,0 +1,2 @@
+commit 1 put first_key=hello_1
+receiveMsg baa7bdd60ce7f00ec575ec12cfab9830 {"id":"10001","client_id":"bft_client0001","payload":"put second_key=hello_1","timestamp":100000,"status":0,"md5sign":""}
