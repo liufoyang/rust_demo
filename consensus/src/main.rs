@@ -233,8 +233,9 @@ fn main() {
                     if(!node_msg_result.is_ok()) {
                         warn!("parse prePrepare msg json error {}", node_msg_result.err().unwrap());
                     } else {
+                        let mut executor = executor_sub.lock().unwrap();
                         let node_msg = node_msg_result.unwrap();
-                        let result = node.doPrepare(node_msg);
+                        let result = node.doPrepare(node_msg, &mut executor);
 
                         if result.is_some() {
                             let (view_num, sequece_num) = result.unwrap();
@@ -258,8 +259,9 @@ fn main() {
                     if(!node_msg_result.is_ok()) {
                         warn!("parse receiveCommit msg json error {}", node_msg_result.err().unwrap());
                     } else {
+                        let mut executor = executor_sub.lock().unwrap();
                         let node_msg = node_msg_result.unwrap();
-                        node.receiveCommit(node_msg);
+                        node.receiveCommit(node_msg, &mut *executor);
                     }
 
 
@@ -286,7 +288,7 @@ fn main() {
 
 
                 }else if(msg.command.as_str() == "viewchange") {
-                    info!("newnode command");
+                    info!("viewchange command");
                     let node_msg_result:DecodeResult<Bft_View_Change_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
                         warn!("parse newnode msg json error {}", node_msg_result.err().unwrap());
@@ -297,13 +299,14 @@ fn main() {
 
 
                 }else if(msg.command.as_str() == "newview") {
-                    info!("newnode command");
+                    info!("newview command");
                     let node_msg_result:DecodeResult<Bft_New_View_Message> = json::decode(&msg.payload);
                     if(!node_msg_result.is_ok()) {
                         warn!("parse newnode msg json error {}", node_msg_result.err().unwrap());
                     } else {
+                        let mut executor = executor_sub.lock().unwrap();
                         let new_view_msg = node_msg_result.unwrap();
-                        node.receiveNewView(new_view_msg);
+                        node.receiveNewView(new_view_msg, &mut executor);
                     }
 
 

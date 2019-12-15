@@ -10,6 +10,8 @@ use super::threadpool::ThreadPool;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::collections::HashMap;
+use flexi_logger::{Logger, opt_format};
+use log::*;
 //use std::convert::From::from;
 
 ///只是做一个直接写log，写businessfile的保存命令结果。
@@ -64,7 +66,7 @@ impl Command_Executor {
         self.msglogfiles.write(buf);
         self.msglogfiles.flush();
 
-        println!("write the log file {}", s);
+        info!("write the log file {}", s);
 
 
     }
@@ -84,38 +86,46 @@ impl Command_Executor {
         }else if command.starts_with("get") {
             commandKey = "get";
         } else {
-            println!("not valid command {}", command);
+            info!("not valid command {}", command);
             return result;
         }
 
         let mut keyValueStr = command.replace(commandKey, "");
 
-        if !keyValueStr.contains("=") {
-            println!("not valid command {}", command);
+        if commandKey== "put" && !keyValueStr.contains("=") {
+            info!("not valid command {}", command);
             return result;
         }
-        let playloads:Vec<&str> = keyValueStr.split('=').collect();;
+        let playloads:Vec<&str> = keyValueStr.split('=').collect();
 
         let key = playloads[0].trim();
-        let value = playloads[1].trim();
 
         let mut out = String::from(command);
         out.push_str("\n");
         let mut  buf = out.as_ref();
         self.busifiles.write(buf);
         self.busifiles.flush();
-        println!("write the business file {}", command);
-
-        if commandKey == "put" {
-            self.valueMap.insert(key.to_string(), value.to_string());
-        } else if commandKey == "delete" {
-            result = self.valueMap.remove(key.clone());
-        }
+        info!("write the business file {}", command);
 
         let keyStr = key.to_string();
+        if commandKey == "put" {
+            let value = playloads[1].trim();
+            self.valueMap.insert(key.to_string(), value.to_string());
+        } else if commandKey == "delete" {
+            let delete_result = self.valueMap.remove(&keyStr);
+            if delete_result.is_some() {
+                result = Some(delete_result.unwrap());
+            } else {
+                return Some("".to_string());
+            }
+            return result;
+        }
+
         if self.valueMap.contains_key(&keyStr) {
             let value_str = self.valueMap.get(&keyStr).unwrap();
             result = Some(value_str.to_string());
+        } else {
+            return Some("".to_string());
         }
 
         return result;

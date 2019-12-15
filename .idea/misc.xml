@@ -3,6 +3,7 @@
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
+  <component name="IdProvider" IDEtalkID="6917C92270D545820CAA4FAF1802D7EF" />
   <component name="ProjectRootManager">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
