@@ -19,17 +19,21 @@ pub struct Bft_Message {
     status:i32,
     timestamp:u64,
     md5sign: String,
+    client_ip:String,
+    port:String,
 }
 
 impl Bft_Message {
-    pub fn new(_payload: &str, _client_id:&str) ->Bft_Message{
+    pub fn new(_payload: &str, _client_id:&str, _ip:&str, _port:&str) ->Bft_Message{
         let msg =  Bft_Message{
             payload:_payload.to_string(),
             client_id: _client_id.to_string(),
             id: "1232345".to_string(),
             timestamp:100000,
             status:1,
-            md5sign:String::new()
+            md5sign:String::new(),
+            client_ip:_ip.to_string(),
+            port:_port.to_string(),
         };
         return msg;
     }
@@ -61,6 +65,14 @@ impl Bft_Message {
 
     pub fn get_status(&self) -> i32{
         return self.status.clone();
+    }
+
+    pub fn get_client_ip(&self) ->&str {
+        return self.client_ip.as_str()
+    }
+
+    pub fn get_port(&self) ->&str {
+        return self.port.as_str()
     }
 }
 

@@ -5,4 +5,5 @@ members = [
     "demolib",
     "consensus",
     "rocketdemo",
+    "pbft_client",
 ]

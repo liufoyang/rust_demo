@@ -9,7 +9,7 @@ use std::boxed::Box;
 use std::collections::HashMap;
 use std::sync::{Mutex,Arc};
 use std::rc::Rc;
-use std::sync::mpsc::TryRecvError;
+use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 use super::communication::{BftCommunication,BftCommunicationMsg};
 use std::result::Result;
@@ -17,6 +17,7 @@ use std::option::Option::Some;
 use flexi_logger::{Logger, opt_format};
 use log::*;
 use std::io;
+use std::sync::MutexGuard;
 
 pub struct Default_TCP_Communication {
     connections:Arc<Mutex<HashMap<String, Sender<BftCommunicationMsg>>>>,
@@ -56,10 +57,7 @@ impl Default_TCP_Communication {
                 let mut stream = stream.unwrap();
 
                 let mut msg_sender_reader = Sender::clone(&msg_sender_sub);
-                let millis_100 = Duration::from_millis(200);
-                stream.set_read_timeout(Some(millis_100)).expect("set_read_timeout call failed");
-                let mut connections = connection_listener.lock().unwrap();
-                Default_TCP_Communication::create_new_reader(msg_sender_reader, &mut connections,  stream);
+                Default_TCP_Communication::create_new_reader(msg_sender_reader,   stream);
             }
         });
 
@@ -93,6 +91,7 @@ impl Default_TCP_Communication {
                         }
 
                     } else if msg.command.eq_ignore_ascii_case("disconnection") {
+                        info!("remove connection for {}", msg.payload);
                         let mut connections = connection_receiver.lock().unwrap();
                         connections.remove(&msg.payload);
                     }else {
@@ -114,165 +113,239 @@ impl Default_TCP_Communication {
         return (comminications, main_receiver);
     }
 
-    fn create_new_reader(msg_sender: Sender<Box<BftCommunicationMsg>>, connections: &mut HashMap<String, Sender<BftCommunicationMsg>>, mut stream: TcpStream) {
+    fn create_new_reader(msg_sender: Sender<Box<BftCommunicationMsg>>, mut stream: TcpStream) {
 
-        let (readerSender, readerReceiver) = channel();
-        connections.insert(stream.peer_addr().unwrap().to_string(), readerSender);
         let connection_name = stream.peer_addr().unwrap().to_string();
-        let mut name = String::from("bft_node_readwritor_");
+        info!("new connection put the pools {}",connection_name);
+        let mut name = String::from("bft_node_reader_");
         name.push_str(connection_name.as_str());
+        stream.set_read_timeout(None).expect("set_read_timeout call failed");
 
         thread::Builder::new().name(name).spawn(move || {
-            let millis_100 = Duration::from_millis(200);
+            let mut not_receiver_time = 0;
             while true {
                 let mut buffer = [0; 2048];
 
                 let read_result = stream.read(&mut buffer);
 
-                let mut check_heart = false;
                 if read_result.is_ok() {
                     let lensize = read_result.unwrap();
 
                     if lensize<= 0 {
+                        not_receiver_time +=1;
+                        info!("read stream zero");
+                        let millis_100 = Duration::from_millis(200*not_receiver_time);
                         thread::sleep(millis_100);
-                        check_heart = true;
+
                     } else {
+                        not_receiver_time = 0;
                         let (left, right) = buffer.split_at(lensize);
-                        // just say hello.
-                        if left == b"got" {
-                            continue;
-                        }
-                        let message_str = String::from_utf8_lossy(&left[..]);
+                        let receiver_str = String::from_utf8_lossy(&left[..]).to_string();
+                        //info!("receive source msg {}", receiver_str);
+                        let msgList:Vec<&str> = receiver_str.split("#end#").collect();
 
-                        info!("receive one msg {}", message_str);
+                        info!("receive source msg after split {:?}", msgList);
+                        for msg_str in msgList {
+                            let message_str = msg_str.to_string();
 
-                        // check the msg format
-                        ///  command version leng \n
-                        ///  body
-                        let mut lines = message_str.lines();
-
-                        // match header
-                        let mut command = String::new();
-                        let mut version = String::new();
-                        let mut payload = String::new();
-                        let mut is_sys = false;
-                        let mut id = String::new();
-
-                        match lines.next() {
-                            Some(header_str) => {
-                                // check header
-                                let mut iter = header_str.split_whitespace();
-                                let mut i = 0;
-                                for token in iter {
-                                    if i == 0 {
-                                        command.push_str(token);
-                                    }
-                                    if i == 1 {
-                                        version.push_str(token);
-                                    }
-
-                                    if i == 2 {
-                                        is_sys = token.eq_ignore_ascii_case("true");
-                                    }
-
-                                    if i == 3 {
-                                        id.push_str(token);
-                                    }
-                                    i += 1;
-                                }
-
-                                if (command.is_empty() || version.is_empty()) {
-                                    // header format error
-                                    warn!("header format error");
-                                    continue;
-                                }
-                            }
-                            None => {
-                                // message format error
-                                warn!("message format error");
+                            if message_str.is_empty() {
                                 continue;
                             }
-                        }
 
-                        match lines.next() {
-                            Some(payload_str) => {
-                                // check body
-                                payload.push_str(payload_str);
-                            }
-                            None => {
-                                // message format error
-                                warn!("message format error");
+                            if message_str.as_str() == "got" {
                                 continue;
                             }
+                            let communication_msg_result = Default_TCP_Communication::parsePbftMsg(connection_name.as_str(), message_str);
+
+                            if communication_msg_result.is_none() {
+                                continue;
+                            }
+                            let box_msg = Box::new(communication_msg_result.unwrap());
+                            info!("send msg to processor");
+                            msg_sender.send(box_msg);
                         }
-
-                        let communication_msg = BftCommunicationMsg {
-                            id: id,
-                            is_sys: is_sys,
-                            command: command,
-                            version: version,
-                            payload: payload,
-                            from: stream.peer_addr().unwrap().to_string()
-                        };
-
-                        let box_msg = Box::new(communication_msg);
-                        info!("send msg to processor");
-                        msg_sender.send(box_msg);
-
-                        stream.write(b"got");
-                        stream.flush();
                     }
                 } else {
-                    check_heart = true;
+                    warn!("read stream error {:?}", read_result.err());
+                    not_receiver_time +=1;
+                    let millis_100 = Duration::from_millis(200*not_receiver_time);
+                    thread::sleep(millis_100);
+                    if not_receiver_time>3 {
+                        break;
+                    }
                 }
+            }
+            // send disconnection msg;
+            let communication_msg = BftCommunicationMsg {
+                id: "disconnection_id".to_string(),
+                is_sys: false,
+                command: "disconnection".to_string(),
+                version: "v1.0".to_string(),
+                payload: connection_name.clone(),
+                from: connection_name.clone()
+            };
 
-                if check_heart {
-                    let hit_result:io::Result<usize> = stream.write(b"got");
+            let box_msg = Box::new(communication_msg);
+            info!("send disconnection msg to processor and quit");
+            msg_sender.send(box_msg);
+            //return Ok("sender finish job".to_string());
+        });
+    }
 
-                    if hit_result.is_err() {
+    fn parsePbftMsg(connection_name: &str, message_str: String) -> Option<BftCommunicationMsg> {
+
+         // check the msg format
+        ///  command version leng \n
+        ///  body
+        let result = Option::None;
+        let mut lines = message_str.lines();
+// match header
+        let mut command = String::new();
+        let mut version = String::new();
+        let mut payload = String::new();
+        let mut is_sys = false;
+        let mut id = String::new();
+        match lines.next() {
+            Some(header_str) => {
+                // check header
+                let mut iter = header_str.split_whitespace();
+                let mut i = 0;
+                for token in iter {
+                    if i == 0 {
+                        command.push_str(token);
+                    }
+                    if i == 1 {
+                        version.push_str(token);
+                    }
+
+                    if i == 2 {
+                        is_sys = token.eq_ignore_ascii_case("true");
+                    }
+
+                    if i == 3 {
+                        id.push_str(token);
+                    }
+                    i += 1;
+                }
+                if (command.is_empty() || version.is_empty()) {
+                    // header format error
+                    warn!("header format error");
+                    return result;
+                }
+            }
+            None => {
+                // message format error
+                warn!("message format error");
+                return result;
+            }
+        }
+        match lines.next() {
+            Some(payload_str) => {
+                // check body
+                payload.push_str(payload_str);
+            }
+            None => {
+                // message format error
+                warn!("message format error");
+                return result;
+            }
+        }
+        let communication_msg = BftCommunicationMsg {
+            id: id,
+            is_sys: is_sys,
+            command: command,
+            version: version,
+            payload: payload,
+            from: connection_name.to_string()
+        };
+        return Some(communication_msg)
+    }
+
+
+    fn create_new_writer(msg_sender: Sender<Box<BftCommunicationMsg>>, connections: &mut HashMap<String, Sender<BftCommunicationMsg>>, mut stream: TcpStream) {
+
+        let (readerSender, readerReceiver) = channel();
+        let connection_name = stream.peer_addr().unwrap().to_string();
+        connections.insert(connection_name.clone(), readerSender);
+        info!("new connection put the pools {}",connection_name);
+        let mut name = String::from("bft_node_writer_");
+        name.push_str(connection_name.as_str());
+
+        thread::Builder::new().name(name).spawn(move || {
+            let millis_100 = Duration::from_millis(200);
+            let mut not_write_time = 0;
+            while true {
+
+                let send_msg_result: Result<BftCommunicationMsg, RecvTimeoutError> = readerReceiver.recv_timeout(millis_100);
+                if send_msg_result.is_ok() {
+                    let data: BftCommunicationMsg = send_msg_result.unwrap();
+                    let data_str = data.to_string();
+                    info!("begin send the msg {}", data_str);
+                    //let msg_data = .as_bytes();
+                    let mut write_result = stream.write(data_str.as_bytes());
+                    write_result = stream.write(b"#end#");
+                    let flush_result = stream.flush();
+
+                    if write_result.is_ok()&& write_result.unwrap()>0 && flush_result.is_ok() {
+                        info!("send finish {}", data_str);
+                    } else {
+
+                        warn!("send msg fail, reconnection to {}", connection_name);
+                        // reconnection
                         let stream_result = TcpStream::connect(connection_name.as_str());
                         if !stream_result.is_ok() {
                             // not connection
                             error!("connection {} fail {:?}", connection_name, stream_result.err());
 
-                            // send disconnection msg;
-                            let communication_msg = BftCommunicationMsg {
-                                id: "disconnection_id".to_string(),
-                                is_sys: false,
-                                command: "disconnection".to_string(),
-                                version: "v1.0".to_string(),
-                                payload: connection_name.clone(),
-                                from: connection_name.clone()
-                            };
-
-                            let box_msg = Box::new(communication_msg);
-                            info!("send disconnection msg to processor and quit");
-                            msg_sender.send(box_msg);
                             break;
                         } else {
                             info!("reconnection {}", connection_name);
                             stream = stream_result.unwrap();
+
+                            //let msg_data = .as_bytes();
+                            let mut write_result = stream.write(data_str.as_bytes());
+                            write_result = stream.write(b"#end#");
+                            let flush_result = stream.flush();
+
+                            if write_result.is_ok() && flush_result.is_ok() {
+                                info!("send finish {}", data_str);
+                            }
                         }
                     }
 
-                }
-                let send_msg_result: Result<BftCommunicationMsg, TryRecvError> = readerReceiver.try_recv();
-                if (send_msg_result.is_ok()) {
-                    let data: BftCommunicationMsg = send_msg_result.unwrap();
-                    let data_str = data.to_string();
-                    //let msg_data = .as_bytes();
-                    stream.write(data_str.as_bytes());
-                    stream.flush();
-                    info!("send finish {}", data_str);
-                }
+                } else {
+                    info!("no msg to send to stream {}, {:?}", connection_name, readerReceiver);
+                    not_write_time +=1;
 
+                    if not_write_time%20 == 0 {
+                        let  write_result = stream.write(b"got#end#");
+                        let flush_result = stream.flush();
+                        if write_result.is_ok()&& write_result.unwrap()>0 && flush_result.is_ok(){
+                            info!("send heart hit to {}", connection_name);
+                            not_write_time = 0;
+                        } else {
+                            break;
+                        }
+                    }
+                }
 
             }
+            // send disconnection msg;
+            let communication_msg = BftCommunicationMsg {
+                id: "disconnection_id".to_string(),
+                is_sys: false,
+                command: "disconnection".to_string(),
+                version: "v1.0".to_string(),
+                payload: connection_name.clone(),
+                from: connection_name.clone()
+            };
 
+            let box_msg = Box::new(communication_msg);
+            info!("send disconnection msg to processor and quit");
+            msg_sender.send(box_msg);
             //return Ok("sender finish job".to_string());
         });
     }
-
 
     pub fn sendMessage(&mut self, address:&str, port:&str, data:BftCommunicationMsg, isAsync:bool) -> Option<BftCommunicationMsg>{
         let mut address_all = String::from(address);
@@ -296,30 +369,33 @@ impl Default_TCP_Communication {
 
         if connections.contains_key(&connection_name) {
             let sender = connections.get(&connection_name).unwrap();
+            info!("give msg to reader thread {} {:?}", connection_name, sender);
             sender.send(data);
         } else {
+            let connection_result = self.doConnectionTo(connection_name.as_str(), &mut connections);
 
-            let stream_result = TcpStream::connect(connection_name.as_str());
-            if !stream_result.is_ok() {
-                // not connection
-                error!("connection {} fail {:?}", connection_name, stream_result.err());
-                return None;
+            if connection_result.is_some() {
+                let sender = connections.get(&connection_name).unwrap();
+                sender.send(data);
             }
-            info!("connection to {} success", connection_name);
-
-            let millis_100 = Duration::from_millis(200);
-            let mut stream = stream_result.unwrap();
-            stream.set_read_timeout(Some(millis_100)).expect("set_read_timeout call failed");
-
-            let msg_sender_sub = Sender::clone(&self.msg_sender);
-            Default_TCP_Communication::create_new_reader(msg_sender_sub, &mut connections, stream);
-
-            let sender = connections.get(&connection_name).unwrap();
-
-            sender.send(data);
         }
 
         return None;
+    }
+
+    fn doConnectionTo(&self, connection_name: &str, connections: &mut HashMap<String, Sender<BftCommunicationMsg>>) -> Option<String> {
+        warn!("reconnection to {}", connection_name);
+        let stream_result = TcpStream::connect(connection_name);
+        if !stream_result.is_ok() {
+            // not connection
+            error!("connection {} fail {:?}", connection_name, stream_result.err());
+            return None;
+        }
+        let stream = stream_result.unwrap();
+        info!("connection to {} success", connection_name);
+        let msg_sender_sub = Sender::clone(&self.msg_sender);
+        Default_TCP_Communication::create_new_writer(msg_sender_sub, connections, stream);
+        return Some("Success".to_string());
     }
 
     fn sendMessageSync(&mut self, connection_name:String, mut data:BftCommunicationMsg) -> Option<BftCommunicationMsg>{
@@ -341,24 +417,13 @@ impl Default_TCP_Communication {
                 has_send = true
 
             } else {
-                let stream_result = TcpStream::connect(connection_name.as_str());
-                if !stream_result.is_ok() {
-                    // not connection
-                    error!("connection {} fail {:?}", connection_name, stream_result.err());
-                    return None;
+                let connection_result = self.doConnectionTo(connection_name.as_str(), &mut connections);
+
+                if connection_result.is_some() {
+                    let sender = connections.get(&connection_name).unwrap();
+                    sender.send(data);
+                    has_send = true;
                 }
-                info!("connection to {} success", connection_name);
-                let msg_sender_sub = Sender::clone(&self.msg_sender);
-
-                let millis_100 = Duration::from_millis(200);
-                let mut stream = stream_result.unwrap();
-                stream.set_read_timeout(Some(millis_100)).expect("set_read_timeout call failed");
-                Default_TCP_Communication::create_new_reader(msg_sender_sub, &mut connections, stream);
-
-                let sender = connections.get(&connection_name).unwrap();
-
-                sender.send(data);
-                has_send = true;
             }
         }
 
@@ -387,36 +452,4 @@ impl Default_TCP_Communication {
         return notify_receiver;
     }
 
-//    pub fn sendMessageWithReply(address:&str, port:&str, data:BftCommunicationMsg) ->Result<String, &'static str>{
-//        let mut address_all = String::from(address);
-//        address_all.push_str(":");
-//        address_all.push_str(port);
-//
-//        let stream_result = TcpStream::connect(address_all.as_str());
-//        if !stream_result.is_ok() {
-//            // not connection
-//            println!("connection {} fail {:?}", address_all, stream_result.err());
-//            return Err("connection fail");
-//        }
-//
-//        let mut stream = stream_result.unwrap();
-//        let data_str = data.to_string();
-//        //let msg_data = .as_bytes();
-//        stream.write(data_str.as_bytes());
-//
-//        println!("send finish {} {}", address_all, data_str);
-//
-//        let mut buffer = [0; 2048];
-//
-//        let read_result = stream.read(&mut buffer);
-//        if !read_result.is_ok() {
-//            println!("send finish {:?}", read_result.err());
-//            return Err("read stram error");
-//        } else {
-//            let (left, right)  = buffer.split_at(read_result.unwrap());
-//            let reply_str = String::from_utf8_lossy(&left[..]);
-//            return Ok(reply_str.to_string());
-//        }
-//
-//    }
 }

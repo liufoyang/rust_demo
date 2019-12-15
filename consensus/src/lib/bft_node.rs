@@ -161,7 +161,7 @@ impl Btf_Node {
             self.broadcastMsg(payload, "prePrepare");
 
             info!("process for primary");
-            self.doPrepare(prePrepareMsg);
+            self.doPrepare(prePrepareMsg, executor);
 
             self.seq_num = num;
             return msg_md5_str;
@@ -190,7 +190,7 @@ impl Btf_Node {
             return md5_str;
         }
     }
-    pub fn doPrepare(& mut self,  msg:Bft_PrePrepare_Message) -> Option<(u64, u64)>{
+    pub fn doPrepare(& mut self,  msg:Bft_PrePrepare_Message, mut executor:&mut Command_Executor) -> Option<(u64, u64)>{
 
         info!("begin doPrepare for");
 
@@ -258,16 +258,18 @@ impl Btf_Node {
                     prepare_msg.set_msg_digest(sign);
                     payload = json::encode(&prepare_msg).unwrap();
 
-                    if self.prepare_cache.contains_key(& seq_num) {
-                        let list = self.prepare_cache.get_mut(& seq_num).unwrap();
-                        list.push(prepare_msg.clone());
-                    } else {
-                        let mut prepare_vec = Vec::new();
-                        prepare_vec.push(prepare_msg.clone());
-                        self.prepare_cache.insert(seq_num, prepare_vec);
-                    }
+//                    if self.prepare_cache.contains_key(& seq_num) {
+//                        let list = self.prepare_cache.get_mut(& seq_num).unwrap();
+//                        list.push(prepare_msg.clone());
+//                    } else {
+//                        let mut prepare_vec = Vec::new();
+//                        prepare_vec.push(prepare_msg.clone());
+//                        self.prepare_cache.insert(seq_num, prepare_vec);
+//                    }
 
                     self.broadcastMsg(payload, "prepare");
+                    self.receivePrepare(prepare_msg, &mut executor);
+
                 }
 
                 let mut receive_msg2 = self.msg_cache.get_mut(& msg.get_sequence_num()).unwrap();
@@ -276,7 +278,7 @@ impl Btf_Node {
 
             } else {
                 // not same msg for the same num
-
+                error!("not same msg for the same num");
             }
             return Some((msg.get_view_num(), msg.get_sequence_num()));
 
@@ -295,18 +297,19 @@ impl Btf_Node {
             prepare_msg.set_msg_digest(sign);
             payload = json::encode(&prepare_msg).unwrap();
 
-            let seq_num = msg.get_sequence_num();
-            if self.prepare_cache.contains_key(& seq_num) {
-                let list = self.prepare_cache.get_mut(& seq_num).unwrap();
-                list.push(prepare_msg.clone());
-            } else {
-                let mut prepare_vec = Vec::new();
-                prepare_vec.push(prepare_msg.clone());
-                self.prepare_cache.insert(seq_num, prepare_vec);
-            }
+//            let seq_num = msg.get_sequence_num();
+//            if self.prepare_cache.contains_key(& seq_num) {
+//                let list = self.prepare_cache.get_mut(& seq_num).unwrap();
+//                list.push(prepare_msg.clone());
+//            } else {
+//                let mut prepare_vec = Vec::new();
+//                prepare_vec.push(prepare_msg.clone());
+//                self.prepare_cache.insert(seq_num, prepare_vec);
+//            }
 
             // send the prepare msg
             self.broadcastMsg(payload, "prepare");
+            self.receivePrepare(prepare_msg, &mut executor);
 
             return Some((msg.get_view_num(), msg.get_sequence_num()));
         }
@@ -327,7 +330,7 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            info!("can not found  node id for {}", sign_msg.get_node_id());
+            error!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
@@ -389,19 +392,20 @@ impl Btf_Node {
             commit_msg.set_msg_digest(sign);
 
             info!("begin to commit {}", msg.get_sequence_num());
-            // put msg to log file
-            if self.commit_cache.contains_key(&seq_num) {
-                let list = self.commit_cache.get_mut(&seq_num).unwrap();
-                list.push(commit_msg.clone());
-            } else {
-                let mut commit_msg_list = Vec::new();
-                commit_msg_list.push(commit_msg.clone());
-                self.commit_cache.insert(seq_num.clone(), commit_msg_list);
-            }
+
+//            // put msg to log file
+//            if self.commit_cache.contains_key(&seq_num) {
+//                let list = self.commit_cache.get_mut(&seq_num).unwrap();
+//                list.push(commit_msg.clone());
+//            } else {
+//                let mut commit_msg_list = Vec::new();
+//                commit_msg_list.push(commit_msg.clone());
+//                self.commit_cache.insert(seq_num.clone(), commit_msg_list);
+//            }
 
             let mut receive_msg = self.msg_cache.get_mut(& msg.get_sequence_num()).unwrap();
-
             if receive_msg.get_status() != 3 {
+
                 // do commit
                 let mut logs_str = String::from("commit ");
                 logs_str.push_str(seq_num.to_string().as_str());
@@ -422,9 +426,9 @@ impl Btf_Node {
                 // broadcast the msg to other
                 self.broadcastMsg(payload, "commit");
 
+                self.receiveCommit(commit_msg, &mut executor);
+
             }
-
-
         }
 
     }
@@ -446,7 +450,7 @@ impl Btf_Node {
         return prepare_list.len()>= min_pass_count;
     }
 
-    pub fn receiveCommit(& mut self, msg:Bft_Commit_Message) {
+    pub fn receiveCommit(& mut self, msg:Bft_Commit_Message, mut executor:&mut Command_Executor) {
 
         // check sign for node
         let mut sign_msg = msg.clone();
@@ -456,47 +460,28 @@ impl Btf_Node {
         let pub_key_result = self.get_node_pub_key(&msg_node_id);
 
         if pub_key_result.is_none() {
-            info!("can not found  node id for {}", sign_msg.get_node_id());
+            error!("can not found  node id for {}", sign_msg.get_node_id());
             return;
         }
 
         let signMsgStr = json::encode(&sign_msg).unwrap();
         if !Bft_Signtor::check_sign(signMsgStr.as_str(), pub_key_result.unwrap().as_str(), msg_digest.as_str()) {
-            info!("commit msg sign not pass for {}", sign_msg.get_node_id());
+            error!("commit msg sign not pass for {}", sign_msg.get_node_id());
             return;
         }
 
-        let mut source_msg_option:Option<Bft_Message> = None;
-        if self.msg_cache.contains_key(& msg.get_sequence_num()) {
-            // have receive this msg num before, check if the same msg
-            let receive_msg = self.msg_cache.get(& msg.get_sequence_num()).unwrap();
-            source_msg_option = Some(receive_msg.clone());
-        }
-
-        // have receive pre prepare msg in this node but not same msg, return error;
-        if  source_msg_option.is_some() {
-            let source_msg = source_msg_option.unwrap();
-        }
-
-        // check the desigt
-        let mut node_option:Option<Btf_Node_Simple>  = Option::None;
-        for simple in & self.node_list {
-            if simple.node_id == msg.get_node_id() {
-                node_option = Some(simple.clone());
-            }
-        }
-
-        // not know node, not process its prepare,
-        if node_option.is_none() {
-            return;
-        }
-
-        let simple_node = node_option.unwrap();
-
-        // check design fail
-        if simple_node.public_key.as_str() != msg.get_msg_digest() {
-            return;
-        }
+        info!("check pass, process commit msg");
+//        let mut source_msg_option:Option<Bft_Message> = None;
+//        if self.msg_cache.contains_key(& msg.get_sequence_num()) {
+//            // have receive this msg num before, check if the same msg
+//            let receive_msg = self.msg_cache.get(& msg.get_sequence_num()).unwrap();
+//            source_msg_option = Some(receive_msg.clone());
+//        }
+//
+//        // have receive pre prepare msg in this node but not same msg, return error;
+//        if  source_msg_option.is_some() {
+//            let source_msg = source_msg_option.unwrap();
+//        }
 
         // check pass add to prepare cache;
         if self.commit_cache.contains_key(&msg.get_sequence_num()) {
@@ -508,11 +493,11 @@ impl Btf_Node {
             self.commit_cache.insert(msg.get_sequence_num(), commit_msg_list);
         }
 
-        self.doReplay(msg.get_sequence_num());
+        self.doReplay(msg.get_sequence_num(), executor);
 
     }
 
-    pub fn doReplay(&mut self, _sequence_num:u64) {
+    pub fn doReplay(&mut self, _sequence_num:u64, mut executor:&mut Command_Executor) {
         if !self.commit_cache.contains_key(&_sequence_num) {
             return;
         }
@@ -522,17 +507,30 @@ impl Btf_Node {
             return;
         }
 
-        let msg = self.msg_cache.get(&_sequence_num).unwrap();
+        let mut msg = self.msg_cache.get_mut(&_sequence_num).unwrap();
         /// commit mes count > 2f+1 then pass and view not change commit local;
         ///  commit mes count > f+1 then pass and view have changed commit at this node view;
         let min_pass_count = self.node_list.len()/3 + 1;
         let commit_msg_list = self.commit_cache.get(&_sequence_num).unwrap();
         info!("enough commit {} {}", commit_msg_list.len(), min_pass_count);
-        if commit_msg_list.len()>= min_pass_count {
+        if commit_msg_list.len()>= min_pass_count && msg.get_status()==3 {
+            msg.set_status(4);
+            let result = executor.command_execute(msg.get_payload());
+
+            let result_payload:String = match result {
+                Some(msg) => msg,
+                None => "poccess fail".to_string()
+            };
+
             // new replay msg and send to client _view_num:u32, _payload: &str, _node_id:&str, _source_msg:Bft_Message
-            let replay_msg:Bft_Replay = Bft_Replay::new(self.view_num, "succes process", self.get_node_base().node_id.clone(), msg.clone());
+            let replay_msg:Bft_Replay = Bft_Replay::new(self.view_num, result_payload.as_str(), self.base.node_id.clone(), msg.clone());
             let payload = json::encode(&replay_msg).unwrap();
-            self.broadcastMsg(payload, "replay");
+            // send to client only
+            let communication_msg = BftCommunicationMsg::new("replay", payload.as_str());
+
+            info!("replay to {} {} {}", msg.get_client_ip(), msg.get_port(), payload);
+            self.communication.sendMessage(msg.get_client_ip(), msg.get_port(), communication_msg, true);
+
         }
     }
 
@@ -707,7 +705,7 @@ impl Btf_Node {
 
     }
 
-    pub fn receiveNewView(&mut self, msg:Bft_New_View_Message) {
+    pub fn receiveNewView(&mut self, msg:Bft_New_View_Message, mut executor:&mut Command_Executor) {
 
         let new_view_num = msg.get_view_num();
         info!("begin new view {}, {}, {}", new_view_num, self.view_num, self.is_primary);
@@ -745,7 +743,7 @@ impl Btf_Node {
         info!("end view change to new view");
 
         for prePreMsg in msg.get_prePrepare() {
-            self.doPrepare(prePreMsg.clone());
+            self.doPrepare(prePreMsg.clone(), &mut executor);
         }
     }
 
@@ -769,12 +767,13 @@ impl Btf_Node {
 
         }
 
+        info!("end to broadcase");
 
     }
 
     fn sendToPrimaryMsg (data:String , command:&str, _primary_addr:&str, _port:&str, communication:&mut Default_TCP_Communication) ->std::result::Result<String, &'static str>{
 
-        info!("bengin to broadcase {} {}", _primary_addr, _port);
+        info!("bengin to sendToPrimaryMsg {} {}", _primary_addr, _port);
         let payload_str = data;
         let communication_msg = BftCommunicationMsg::new(command, payload_str.as_str());
 
