@@ -290,19 +290,22 @@ impl Command_Executor {
             self.block_index +=1;
         }
 
-        let block = self.block_chain.get(self.block_index-1).unwrap();
+        let mut block = self.block_chain.get_mut(self.block_index-1).unwrap();
         let mut body = block.get_body();
 
         let buckets = body.get_buckets();
 
+        let mut commands = Vec::new();
         for bucket in buckets{
             let datas  =  bucket.get_datas();
             for data in datas {
-                self.command_execute(data);
+                commands.push(data.clone());
             }
         }
 
-
+        for command in commands {
+            self.command_execute(command.as_str());
+        }
         info!("load the block index {}", self.block_index);
     }
 
