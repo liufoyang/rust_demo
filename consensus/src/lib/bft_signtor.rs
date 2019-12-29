@@ -3,6 +3,7 @@ use crypto::ed25519;
 
 extern crate rustc_hex;
 use rustc_hex::{FromHex, ToHex};
+extern crate flexi_logger;
 use flexi_logger::{Logger, opt_format};
 use log::*;
 
@@ -69,7 +70,7 @@ mod tests {
 
         let sign = signtor.sign_string(msg);
 
-        info!("check result {}", Bft_Signtor::check_sign(msg, signtor.get_public_key().as_str(), sign.as_str()));
+        //info!("check result {}", Bft_Signtor::check_sign(msg, signtor.get_public_key().as_str(), sign.as_str()));
 
     }
 }

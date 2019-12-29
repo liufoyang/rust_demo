@@ -1,0 +1,5 @@
+[2019-12-23 17:18:07.665663 +08:00] INFO [consensus/src/main.rs:66] config file ./config/primary_node_config.json
+[2019-12-23 17:18:07.667388 +08:00] INFO [consensus/src/lib/bft_node.rs:589] node init finish true
+[2019-12-23 17:18:07.667645 +08:00] INFO [consensus/src/lib/command_executor.rs:292] read the block file end
+[2019-12-23 17:18:07.667701 +08:00] INFO [consensus/src/lib/command_executor.rs:292] read the block file end
+[2019-12-23 17:18:07.667748 +08:00] INFO [consensus/src/lib/command_executor.rs:285] load the block index 0

@@ -8,6 +8,7 @@ use crate::Bft_PrePrepare_Message;
 use crate::Bft_Prepare_Message;
 use crate::Bft_Commit_Message;
 use crate::Command_Executor;
+use crate::Default_TCP_Communication;
 use crate::ThreadPool;
 extern crate rustc_serialize;
 use rustc_serialize::json::DecodeResult;
@@ -15,13 +16,15 @@ use rustc_serialize::json::{self, ToJson, Json};
 
 #[test]
 fn bft_node_create() {
-    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
+    let (communication, receiver) = Default_TCP_Communication::startListen("10.3.209.97", "8787");
+    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.97", "8787",communication);
 }
 
 #[test]
 fn receiveClientMsg() {
-    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
-    let clientMsg = Bft_Message::new("hello world", "bft_client0001");
+    let (communication, receiver) = Default_TCP_Communication::startListen("10.3.209.97", "8787");
+    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.97", "8787", communication);
+    let clientMsg = Bft_Message::new("hello world", "bft_client0001", "10.3.209.97", "8787");
     let payload_result = json::encode(&clientMsg);
 
     if payload_result.is_ok() {
@@ -34,14 +37,15 @@ fn receiveClientMsg() {
         println!("error {} ", payload_result.err().unwrap());
     }
 
-    let mut threadpool = Command_Executor::new(2);
-    node.receiveClientMsg(clientMsg, &mut threadpool);
+    let mut executor = Command_Executor::new("msg_log", "base_file");
+    node.receiveClientMsg(clientMsg, &mut executor);
 }
 
 #[test]
 fn doPrepare() {
-    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
-    let clientMsg = Bft_Message::new("hello world", "bft_client0001");
+    let (communication, receiver) = Default_TCP_Communication::startListen("10.3.209.97", "8787");
+    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.97", "8787", communication);
+    let clientMsg = Bft_Message::new("hello world", "bft_client0001", "10.3.209.97", "8787");
     let prePrepareMsg:Bft_PrePrepare_Message = Bft_PrePrepare_Message::new(1, 1, 1, clientMsg);
     let payload_result = json::encode(&prePrepareMsg);
     if payload_result.is_ok() {
@@ -49,13 +53,15 @@ fn doPrepare() {
     } else {
         println!("error {} ", payload_result.err().unwrap());
     }
-    node.doPrepare(prePrepareMsg);
+    let mut executor = Command_Executor::new("msg_log", "base_file");
+    node.doPrepare(prePrepareMsg, &mut executor);
 }
 
 #[test]
 fn receivePrepare() {
     println!("begin {}", "receivePrepare");
-    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
+    let (communication, receiver) = Default_TCP_Communication::startListen("10.3.209.97", "8787");
+    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.97", "8787", communication);
     let prepareMsg:Bft_Prepare_Message = Bft_Prepare_Message::new(1, 1, 11);
     let payload_result = json::encode(&prepareMsg);
     if payload_result.is_ok() {
@@ -63,13 +69,15 @@ fn receivePrepare() {
     } else {
         println!("error {} ", payload_result.err().unwrap());
     }
-    let mut threadpool = Command_Executor::new(2);
-    node.receivePrepare(prepareMsg, &mut threadpool);
+    let mut executor = Command_Executor::new("msg_log", "base_file");
+    node.receivePrepare(prepareMsg, &mut executor);
 }
 
 #[test]
 fn receiveCommit() {
-    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.223", "8787");
+    let (communication, receiver) = Default_TCP_Communication::startListen("10.3.209.97", "8787");
+    let mut node:Btf_Node = Btf_Node::start_node("", "8787", "10.3.209.97", "8787", communication);
+
     let commit_msg:Bft_Commit_Message = Bft_Commit_Message::new(1, 1, 11);
     let payload_result = json::encode(&commit_msg);
     if payload_result.is_ok() {
@@ -77,13 +85,14 @@ fn receiveCommit() {
     } else {
         println!("error {} ", payload_result.err().unwrap());
     }
-    node.receiveCommit(commit_msg);
+    let mut executor = Command_Executor::new("msg_log", "base_file");
+    node.receiveCommit(commit_msg, &mut executor);
 }
 
 #[test]
 fn jsonChange() {
     let mut node_list:Vec<Btf_Node_Simple> = vec![];
-    let simple_node = Btf_Node_Simple::new(1, "10.3.209.223","8780", "");
+    let simple_node = Btf_Node_Simple::new(1, "10.3.209.97","8780", "");
     node_list.push(simple_node);
     let replay_msg = Bft_Regist_Reply::new(node_list, 1, 0, 2);
     let payload_result = json::encode(&replay_msg);

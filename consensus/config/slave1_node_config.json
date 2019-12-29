@@ -4,7 +4,6 @@
     "nodePort": "8781",
     "pubKey": "pubkey",
     "privateKey": "priKey",
-    "business_file": "./data_files/slave1_businessfile.log",
-    "checkpoint_file":"./data_files/slave1_datafile.log",
+    "pre_file_name": "./data_files/slave1",
     "log_record_file":"./data_files/slave1_msg_record_file.log"
 }

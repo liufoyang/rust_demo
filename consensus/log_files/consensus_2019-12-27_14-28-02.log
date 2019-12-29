@@ -1,0 +1,6 @@
+[2019-12-27 14:28:02.691897 +08:00] INFO [consensus/src/main.rs:66] config file ./config/primary_node_config.json
+[2019-12-27 14:28:02.703340 +08:00] INFO [consensus/src/lib/bft_node.rs:589] node init finish true
+[2019-12-27 14:28:02.704689 +08:00] INFO [consensus/src/lib/command_executor.rs:299] read the block file end [0, 0, 0, 0, 0, 0, 0, 0]
+[2019-12-27 14:28:02.704793 +08:00] INFO [consensus/src/lib/command_executor.rs:299] read the block file end [0, 0, 0, 0, 0, 0, 0, 0]
+[2019-12-27 14:28:02.704858 +08:00] WARN [consensus/src/lib/command_executor.rs:270] no size for header len 0
+[2019-12-27 14:28:02.704915 +08:00] INFO [consensus/src/lib/command_executor.rs:292] load the block index 0

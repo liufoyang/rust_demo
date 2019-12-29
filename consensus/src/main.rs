@@ -42,8 +42,7 @@ struct Node_Config {
     nodePort: String,
     pubKey: String,
     privateKey: String,
-    business_file: String,
-    checkpoint_file:String,
+    pre_file_name: String,
     log_record_file:String,
 }
 
@@ -80,16 +79,13 @@ fn main() {
 
     let mut config:Node_Config = config_result.unwrap();
 
-    if config.business_file.len() == 0 {
-        config.business_file = "businessfile.log".to_string();
-    }
 
     if config.log_record_file.len() == 0 {
         config.log_record_file = "msg_record_file.log".to_string();
     }
 
-    if config.checkpoint_file.len() == 0 {
-        config.business_file = "datafile.log".to_string();
+    if config.pre_file_name.len() == 0 {
+        config.pre_file_name = "base_node".to_string();
     }
 
     // start a comnunication and listener network
@@ -101,7 +97,7 @@ fn main() {
     // start a thread to handler msg rount
     let node_mutex: Arc<Mutex<Btf_Node>> = Arc::new(Mutex::new(node));
 
-    let mut executor = Command_Executor::new(config.log_record_file.as_str(), config.checkpoint_file.as_str(), config.business_file.as_str());
+    let mut executor = Command_Executor::new(config.log_record_file.as_str(), config.pre_file_name.as_str());
     let executor_mutex:Arc<Mutex<Command_Executor>> = Arc::new(Mutex::new(executor));
 
     // a thread check expire for prepare msg

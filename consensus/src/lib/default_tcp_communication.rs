@@ -37,13 +37,6 @@ impl Default_TCP_Communication {
 
         let connections_mutex: Arc<Mutex<HashMap<String, Sender<BftCommunicationMsg>>>> = Arc::new(Mutex::new(connections));
 
-//        let mut commincation = Default_TCP_Communication {
-//            listener:listener,
-//            sender: sender,
-//            connections:HashMap::new()
-//        };
-
-
         let connection_listener = Arc::clone(&connections_mutex);
         let msg_sender_sub = Sender::clone(&msg_sender);
         thread::Builder::new().name("bft_node_listener".to_string()).spawn(move|| {

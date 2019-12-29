@@ -522,6 +522,9 @@ impl Btf_Node {
                 None => "poccess fail".to_string()
             };
 
+            // save to blockchain
+            executor.save_to_block_chain(msg.get_payload(), self.base.get_node_id().to_string().as_str(), _sequence_num.clone());
+
             // new replay msg and send to client _view_num:u32, _payload: &str, _node_id:&str, _source_msg:Bft_Message
             let replay_msg:Bft_Replay = Bft_Replay::new(self.view_num, result_payload.as_str(), self.base.node_id.clone(), msg.clone());
             let payload = json::encode(&replay_msg).unwrap();

@@ -27,6 +27,8 @@ impl BftCommunicationMsg {
         };
         return msg;
     }
+    ///  command version leng \n
+       ///  body
     pub fn to_string(&self)->String {
         let mut msg_str = String::new();
         msg_str.push_str(self.command.as_str());

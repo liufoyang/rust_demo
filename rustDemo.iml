@@ -27,10 +27,15 @@
       <sourceFolder url="file://$MODULE_DIR$/rocketdemo/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rocketdemo/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/rocketdemo/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/pbft_client/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pbft_client/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pbft_client/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/pbft_client/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/consensus/target" />
       <excludeFolder url="file://$MODULE_DIR$/demobin/target" />
       <excludeFolder url="file://$MODULE_DIR$/demolib/target" />
       <excludeFolder url="file://$MODULE_DIR$/minigrep/target" />
+      <excludeFolder url="file://$MODULE_DIR$/pbft_client/target" />
       <excludeFolder url="file://$MODULE_DIR$/rocketdemo/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
