@@ -44,53 +44,73 @@ impl Bucket {
 
     pub fn dohash(&mut self) -> String {
 
-        let mut  buffer:Vec<u8> = Vec::new();
         let mut buffer_size = 0;
         for bucket in &self.data {
-            buffer_size +=1;
+            buffer_size +=2;
             buffer_size +=bucket.as_bytes().len();
         }
 
         let mut index = 0 as usize;
+        let mut data_buffer:Vec<u8> = Vec::new();
         for bucket in &self.data {
-            let len = bucket.as_bytes().len() as u8;
-            self.byte_buffer.push(len);
-            self.byte_buffer.extend_from_slice(bucket.as_bytes());
+            let size = bucket.as_bytes().len() as u16;
+            println!("save bucket size {}", size);
+            let mut  size_byte = size.to_be_bytes().clone();
+            data_buffer.push(size_byte[0]);
+            data_buffer.push(size_byte[1]);
+            data_buffer.extend_from_slice(bucket.as_bytes());
+            println!("save the data buffer {:?}",data_buffer);
         }
 
         let mut md5 = Md5::new();
-        md5.input(buffer.as_slice());
+        md5.input(data_buffer.as_slice());
         let hash_id = md5.result_str();
+
+        //println!("save the data buffer {:?}",data_buffer);
 
         self.hash_id = hash_id;
 
         let mut buf = self.hash_id.as_bytes().clone();
-
+        let id_hash_size = buf.len() as u16;
+        let mut  size_byte = id_hash_size.to_be_bytes();
+        self.byte_buffer.extend_from_slice(&mut size_byte);
         self.byte_buffer.extend_from_slice(buf);
+        self.byte_buffer.extend_from_slice(data_buffer.as_mut());
 
         return self.hash_id.clone();
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_bytes(&mut self) -> &[u8] {
+        if self.byte_buffer.len() == 0 {
+            self.dohash();
+        }
         return self.byte_buffer.as_slice();
     }
 
     pub fn from_bytes(byte_buffer:&[u8]) ->Bucket{
-
+        let mut len_vec:[u8;2] = [0;2];
         let mut index = 0 as usize;
 
-        index +=256;
+        len_vec[0] = byte_buffer[index];
+        len_vec[1] = byte_buffer[index+1];
+        let mut buf_len = u16::from_be_bytes(len_vec) as usize;
+
+        println!("hash buffer len {}", buf_len);
+        index +=2;
+        // hash_id
+        let hash_id = String::from_utf8_lossy(&byte_buffer[index..(index + buf_len)]).to_string();
+        index += buf_len;
         let mut data_vec = Vec::new();
         while index<byte_buffer.len() {
-            let data_len = byte_buffer[index].clone() as usize;
-            index +=1;
-            let command = String::from_utf8_lossy(&byte_buffer[index..(index+data_len)]).to_string();
+            len_vec[0] = byte_buffer[index];
+            len_vec[1] = byte_buffer[index+1];
+            buf_len = u16::from_be_bytes(len_vec) as usize;
+            println!("data buffer len {}", buf_len);
+            index +=2;
+            let command = String::from_utf8_lossy(&byte_buffer[index..(index+buf_len)]).to_string();
             data_vec.push(command);
-            index+=data_len;
+            index+=buf_len;
         }
-
-        // hash_id
-        let hash_id = String::from_utf8_lossy(&byte_buffer[index..256]).to_string();
 
         let mut buffer = Vec::new();
         buffer.extend_from_slice(byte_buffer);
@@ -99,7 +119,6 @@ impl Bucket {
             data: data_vec,
             byte_buffer:buffer
         };
-
         return bucket;
     }
 
@@ -228,24 +247,27 @@ impl Block_Tree {
         } else {
 
             //
-            let hash_id_num = self.hash_id_vec.len() as u32;
+            let hash_id_num = self.hash_id_vec.len() as u16;
             let mut  buf = hash_id_num.to_be_bytes();
             self.bytes_buffer.extend_from_slice(&mut buf);
 
             /// hash_id_vec
            /// bucket_vec
             for hash_id in &self.hash_id_vec {
-                let buf = hash_id.as_bytes();
-                let size = buf.len() as u8;
-                self.bytes_buffer.push(size);
+                let mut buf = hash_id.as_bytes().clone();
+                let size = buf.len() as u16;
+                let mut  size_byte = size.to_be_bytes();
+                self.bytes_buffer.extend_from_slice(&mut size_byte);
+
 
                 self.bytes_buffer.extend_from_slice(buf);
             }
 
-            for bucket in &self.bucket_vec {
-                let buf = bucket.as_bytes().clone();
-                let size = buf.len() as usize;
-                self.bytes_buffer.extend_from_slice(& size.to_be_bytes());
+            for bucket in &mut self.bucket_vec {
+                let mut buf = bucket.as_bytes().clone();
+                let size = buf.len() as u32;
+                let mut  size_byte = size.to_be_bytes();
+                self.bytes_buffer.extend_from_slice(&mut size_byte);
                 self.bytes_buffer.extend_from_slice(buf);
             }
 
@@ -255,51 +277,49 @@ impl Block_Tree {
     }
 
     pub fn from_bytes(buffer:&[u8]) -> Block_Tree {
+        println!("the buffer len {}", buffer.len());
+        let mut index = 0;
+        let mut len_vec:[u8;2] = [0;2];
+        len_vec[0] = buffer[index];
+        len_vec[1] = buffer[index+1];
 
-        let len_buf = &buffer[0..4];
-
-        let mut len_vec:[u8;4] = [0;4];
-        len_vec[0] = buffer[0];
-        len_vec[1] = buffer[1];
-        len_vec[2] = buffer[2];
-        len_vec[3] = buffer[3];
-
-        let hash_num = u32::from_be_bytes(len_vec);
+        println!("the hash buffer {:?}", len_vec);
+        let hash_num = u16::from_be_bytes(len_vec) as usize;
         let hash_num_len = hash_num as usize;
+        index +=2;
 
+        println!("the hash num len {}", hash_num_len);
         let mut hash_id_vec = Vec::new();
-        let mut index = 4;
+
         for i in 0..hash_num_len {
-            let size = buffer[index] as usize;
-            index += 1;
+            len_vec[0] = buffer[index];
+            len_vec[1] = buffer[index+1];
+            let buf_len = u16::from_be_bytes(len_vec) as usize;
+            index += 2;
 
-            hash_id_vec.push(String::from_utf8_lossy(&buffer[index..(index+size)]).to_string());
+            hash_id_vec.push(String::from_utf8_lossy(&buffer[index..(index+buf_len)]).to_string());
 
-            index += size;
+            index += buf_len;
         }
 
         let mut  bucket_vec = Vec::new();
 
         while index <buffer.len() {
-            let len_buf = &buffer[index..(index +8)];
-            index += 8;
 
-            let mut  buf8:[u8;8] = [0;8];
-            buf8[0] = len_buf[0].clone();
-            buf8[1] = len_buf[1].clone();
-            buf8[2] = len_buf[2].clone();
-            buf8[3] = len_buf[3].clone();
-            buf8[4] = len_buf[4].clone();
-            buf8[5] = len_buf[5].clone();
-            buf8[6] = len_buf[6].clone();
-            buf8[7] = len_buf[6].clone();
-            let bucket_len = usize::from_be_bytes(buf8) ;
+
+            let mut  buf8:[u8;4] = [0;4];
+            buf8[0] = buffer[index].clone();
+            buf8[1] = buffer[index +1].clone();
+            buf8[2] = buffer[index +2].clone();
+            buf8[3] = buffer[index +3].clone();
+            index += 4;
+
+            let bucket_len = u32::from_be_bytes(buf8) as usize;
             let buckt_buf =  &buffer[index..(index +bucket_len)];
-
-            index += bucket_len;
 
             let bucket = Bucket::from_bytes(buckt_buf);
             bucket_vec.push(bucket);
+            index += bucket_len;
         }
 
         let mut byte_buffer = Vec::new(); //buffer.clone();
@@ -516,7 +536,9 @@ impl Conse_Block {
 
 #[cfg(test)]
 mod tests {
+    use super::Bucket;
     use super::Conse_Block;
+    use super::Block_Tree;
 
     #[test]
     fn test_block_one() {
@@ -530,7 +552,7 @@ mod tests {
         conse_block.hashSign();
 
         let mut header =  conse_block.get_header();
-        println!("the block header {:?}", header.as_bytes());
+        //println!("the block header {:?}", header.as_bytes());
 
         let mut body =  conse_block.get_body();
 
@@ -574,5 +596,45 @@ mod tests {
         let mut body =  conse_block.get_body();
 
         assert_eq!(128, body.bucket_size());
+    }
+
+    #[test]
+    fn test_ser_unser_bucket() {
+
+        let mut bucket = Bucket::new();
+        bucket.addTrans("first command");
+        bucket.addTrans("second command");
+
+        bucket.dohash();
+
+        let byte_buffer = bucket.as_bytes();
+        println!("bucket byte {:?}", byte_buffer);
+
+        let second = Bucket::from_bytes(byte_buffer);
+        assert_eq!(second.get_datas().len(), bucket.get_datas().len());
+
+    }
+    #[test]
+    fn test_ser_unser() {
+        let mut conse_block = Conse_Block::new("first_block", "test_node", 100);
+
+        for i in 0..1024 {
+            let command = i.to_string();
+            conse_block.addTrans(command.as_str());
+        }
+
+        conse_block.hashSign();
+
+        let mut header =  conse_block.get_header();
+
+        println!("the block header id {:?}", header.block_id);
+
+        let mut body =  conse_block.get_body();
+        println!("the block {:?}",body.as_bytes());
+
+        let mut body_too = Block_Tree::from_bytes(body.as_bytes());
+        println!("the block buckets len {}", body_too.get_buckets().len());
+        println!("the block buckets len {}", body.get_buckets().len());
+        assert_eq!(body_too.get_buckets().len(), body.get_buckets().len());
     }
 }
