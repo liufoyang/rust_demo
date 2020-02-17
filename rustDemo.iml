@@ -31,7 +31,12 @@
       <sourceFolder url="file://$MODULE_DIR$/pbft_client/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/pbft_client/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/pbft_client/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/consescript/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/consescript/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/consescript/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/consescript/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/consensus/target" />
+      <excludeFolder url="file://$MODULE_DIR$/consescript/target" />
       <excludeFolder url="file://$MODULE_DIR$/demobin/target" />
       <excludeFolder url="file://$MODULE_DIR$/demolib/target" />
       <excludeFolder url="file://$MODULE_DIR$/minigrep/target" />
